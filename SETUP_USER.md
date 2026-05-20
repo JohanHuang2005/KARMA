@@ -28,8 +28,17 @@ On first `Controller(...)` with `CloudRendering`, ai2thor downloads:
 
 `thor-CloudRendering-*.zip` (~797 MB)
 
-- **You need:** stable network (or pre-download and place in ai2thor cache).
-- Cache dir (typical): `~/.ai2thor/releases/` or path shown in download logs.
+- **国内无官方镜像**；推荐用脚本 **aria2 多线程** 从 AWS S3 加速下载：
+
+```bash
+bash scripts/download_assets_mirror.sh ai2thor
+```
+
+| 项目 | 值 |
+|------|-----|
+| 直链 (S3) | `http://s3-us-west-2.amazonaws.com/ai2-thor-public/builds/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917.zip` |
+| 校验文件 | 同上路径 `.sha256` |
+| 安装目录 | `~/.ai2thor/releases/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917/` |
 
 **Verify after download:**
 
@@ -47,15 +56,29 @@ On a machine **with a display**, you can also use the legacy local Unity build (
 
 Used by `scripts/query_with_short_term_memory.py` for STM / experience retrieval.
 
-**Download (if huggingface.co is slow, use mirror):**
+**镜像下载（推荐）：**
 
 ```bash
-export HF_ENDPOINT=https://hf-mirror.com   # China mirror, optional
-source /root/project/KARMA/.venv/bin/activate
-python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-mpnet-base-v2')"
+cd /root/project/KARMA
+source .venv/bin/activate
+bash scripts/download_assets_mirror.sh mpnet    # HF 镜像 hf-mirror.com
+# 或魔搭：
+MPNET_MIRROR=modelscope bash scripts/download_assets_mirror.sh mpnet
 ```
 
-Cache: `~/.cache/huggingface/` or `~/.cache/torch/sentence_transformers/`
+手动方式：
+
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
+huggingface-cli download sentence-transformers/all-mpnet-base-v2
+```
+
+| 镜像 | 地址 |
+|------|------|
+| HF 镜像站 | https://hf-mirror.com/sentence-transformers/all-mpnet-base-v2 |
+| ModelScope 魔搭 | https://www.modelscope.cn/models/sentence-transformers/all-mpnet-base-v2 |
+
+缓存：`~/.cache/huggingface/` 或 ModelScope `~/.cache/modelscope/hub/`
 
 ---
 
