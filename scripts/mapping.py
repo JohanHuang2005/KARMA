@@ -1,7 +1,12 @@
 import json
+import os
+import sys
+
 import numpy as np
-# import matplotlib.pyplot as plt
 from ai2thor.controller import Controller
+
+sys.path.insert(0, os.path.dirname(__file__))
+from karma_paths import MEMORY_DIR
 
 def first_map(initial_event):
     # 遍历场景中的每个物体，获取它们的位置、类型和objectId
@@ -15,7 +20,7 @@ def first_map(initial_event):
         objects_locations.append(obj_info)
 
     # 将物体位置信息保存到 JSON 文件中
-    with open('/home/user/wzx/karma/memory/objects_locations1.json', 'w') as f:
+    with open(str(MEMORY_DIR / "objects_locations1.json"), 'w') as f:
         json.dump(objects_locations, f, indent=4)
 
     print("物体位置信息已保存到 'objects_locations1.json' 文件中")
@@ -34,7 +39,7 @@ def first_map_for_next_time(initial_event):
         objects_locations.append(obj_info)
 
     # 将物体位置信息保存到 JSON 文件中
-    with open('/home/user/wzx/karma/memory/objects_locations.json', 'w') as f:
+    with open(str(MEMORY_DIR / "objects_locations.json"), 'w') as f:
         json.dump(objects_locations, f, indent=4)
 
     print("物体位置信息及其边界框已保存到 'objects_locations1json' 文件中")
@@ -53,7 +58,7 @@ def second_map(event):
         objects_locations.append(obj_info)
 
     # 将物体位置信息保存到 JSON 文件中
-    with open('/home/user/wzx/karma/memory/objects_locations2.json', 'w') as f:
+    with open(str(MEMORY_DIR / "objects_locations2.json"), 'w') as f:
         json.dump(objects_locations, f, indent=4)
 
     print("物体位置信息已保存到 'objects_locations2.json' 文件中")

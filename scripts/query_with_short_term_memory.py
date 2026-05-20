@@ -1,6 +1,12 @@
 import json
+import os
+import sys
+
 import numpy as np
 from sentence_transformers import SentenceTransformer, util
+
+sys.path.insert(0, os.path.dirname(__file__))
+from karma_paths import EXPERIENCE_DIR, KARMA_ROOT, MEMORY_DIR, PROMPTS_DIR
 
 def load_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -46,106 +52,70 @@ def update_memory_with_state(memory_file, analysis_file):
     with open(memory_file, 'w', encoding='utf-8') as file:
         json.dump(memory_data, file, ensure_ascii=False, indent=4)
 
-# 指定文件路径
+def main():
+    analysis_file_path = str(MEMORY_DIR / "analysis_results.json")
+    memory_file_path = str(MEMORY_DIR / "memory3.json")
+    example_file_path = str(EXPERIENCE_DIR / "experience.json")
+    examples_output_path = str(PROMPTS_DIR / "examples.txt")
+    instruction_file_path = str(PROMPTS_DIR / "instruction.txt")
+    short_term_memory_file_path = str(PROMPTS_DIR / "short_term_memory.txt")
 
-analysis_file_path = '/home/user/wzx/karma/memory/analysis_results.json'
+    update_memory_with_state(memory_file_path, analysis_file_path)
+    items = load_json(memory_file_path)
+    description = load_file(instruction_file_path)
+    extracted_task = extract_task(description)
 
-# 读取 memory3.json 中的物体数据
-memory_file_path = '/home/user/wzx/karma/memory/memory3.json'
-example_file_path = '/home/user/wzx/karma/experience/experience.json'
-examples_output_path = '/home/user/wzx/karma/prompts/examples.txt'
-# 更新memory3.json文件 with state
-update_memory_with_state(memory_file_path, analysis_file_path)
+    if extracted_task:
+        print(f"Extracted task: {extracted_task}")
+    else:
+        print("No task found.")
+        extracted_task = ""
 
-items = load_json(memory_file_path)
+    if not extracted_task:
+        return
 
-# 读取并提取任务描述
-instruction_file_path = '/home/user/wzx/karma/prompts/instruction.txt'
-description = load_file(instruction_file_path)
-extracted_task = extract_task(description)
+    model = SentenceTransformer("all-mpnet-base-v2")
 
-# 输出提取的任务描述
-if extracted_task:
-    print(f"Extracted task: {extracted_task}")
-else:
-    print("No task found.")
-    extracted_task = ""
-
-# 如果提取到任务描述，则进行相似度计算
-if extracted_task:
-    item_texts = [item['objectType'] for item in items]
-    
-    # 初始化预训练的 transformer 模型
-    model = SentenceTransformer('all-mpnet-base-v2')
-
-    # 将物品名称转换为嵌入向量
+    item_texts = [item["objectType"] for item in items]
     item_embeddings = model.encode(item_texts, convert_to_tensor=True)
+    query_embedding = model.encode(extracted_task, convert_to_tensor=True)
+    cosine_scores = util.pytorch_cos_sim(query_embedding, item_embeddings)[0].cpu().numpy()
 
-    # 使用提取的任务描述作为查询
-    query = extracted_task
-    query_embedding = model.encode(query, convert_to_tensor=True)
-
-    # 使用余弦相似度计算查询与每个物品的相似度
-    cosine_scores = util.pytorch_cos_sim(query_embedding, item_embeddings)[0]
-
-    # 将PyTorch张量转换为NumPy数组
-    cosine_scores = cosine_scores.cpu().numpy()
-
-    # 获取相似度最高的一个物品
     top_result_idx = np.argsort(cosine_scores)[::-1][0]
     top_result_item = items[top_result_idx]
-
-    # 打印最相似的物体
     print("Top matching item:")
-    print(f"Object Type: {top_result_item['objectType']}, Position: {top_result_item['position']}, Score: {cosine_scores[top_result_idx]:.4f}")
- 
-    # 将最相似的物体保存到 /prompts/short_term_memory.txt 中
-    short_term_memory_file_path = '/home/user/wzx/karma/prompts/short_term_memory.txt'
-    object_type = top_result_item['objectType']
-    position = top_result_item['position']
-    formatted_content = f"{object_type} is at position ({position['x']:.2f}, {position['y']:.2f}, {position['z']:.2f})."
+    print(
+        f"Object Type: {top_result_item['objectType']}, "
+        f"Position: {top_result_item['position']}, "
+        f"Score: {cosine_scores[top_result_idx]:.4f}"
+    )
+
+    position = top_result_item["position"]
+    formatted_content = (
+        f"{top_result_item['objectType']} is at position "
+        f"({position['x']:.2f}, {position['y']:.2f}, {position['z']:.2f})."
+    )
     save_to_file(short_term_memory_file_path, formatted_content)
-
     print(f"Top matching item has been saved to {short_term_memory_file_path}")
-    
 
-############ 匹配 相似的experience 中的物体
-
-# 如果提取到任务描述，则进行相似度计算
-if extracted_task:
     example_data = load_json(example_file_path)
-    tasks = [example['task'] for example in example_data]
-
-    # 初始化预训练的 transformer 模型
-    model = SentenceTransformer('all-mpnet-base-v2')
-
-    # 将任务描述转换为嵌入向量
+    tasks = [example["task"] for example in example_data]
     task_embeddings = model.encode(tasks, convert_to_tensor=True)
-
-    # 使用提取的任务描述作为查询
-    query_embedding = model.encode(extracted_task, convert_to_tensor=True)
-
-    # 使用余弦相似度计算查询与每个任务的相似度
-    cosine_scores = util.pytorch_cos_sim(query_embedding, task_embeddings)[0]
-
-    # 将 PyTorch 张量转换为 NumPy 数组
-    cosine_scores = cosine_scores.cpu().numpy()
-
-    # 获取相似度最高的三个任务
+    cosine_scores = util.pytorch_cos_sim(query_embedding, task_embeddings)[0].cpu().numpy()
     top_k_indices = np.argsort(cosine_scores)[::-1][:3]
+    top_decompositions = [example_data[idx]["decomposition"] for idx in top_k_indices]
 
-    # 提取对应的 decomposition 内容
-    top_decompositions = [example_data[idx]['decomposition'] for idx in top_k_indices]
-
-    # 将提取的内容保存到 examples.txt 中
-    with open(examples_output_path, 'w', encoding='utf-8') as file:
+    with open(examples_output_path, "w", encoding="utf-8") as file:
         for i, decomposition in enumerate(top_decompositions):
             file.write(f"Example {i+1} Decomposition:\n")
-            file.write('\n'.join(decomposition))
-            file.write('\n\n')
+            file.write("\n".join(decomposition))
+            file.write("\n\n")
 
     print(f"Top 3 task decompositions have been saved to {examples_output_path}")
-    # analysis_results_path = '/home/user/wzx/karma/memory/analysis_results.json'
+
+
+if __name__ == "__main__":
+    main()
     # analysis_results = load_json(analysis_results_path)
 
     # best_match = None

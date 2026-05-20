@@ -4,9 +4,9 @@
 # import json
 # import execute_LLM_plan
 
-# history_file_path = '/home/user/wzx/karma/history_tasks/task_history.json'
-# similarity_flag_path = '/home/user/wzx/karma/logs/similarity_flag.json'
-# task_description_file_path = '/home/user/wzx/karma/logs/task_description.json'
+# history_file_path = '/root/project/KARMA/history_tasks/task_history.json'
+# similarity_flag_path = '/root/project/KARMA/logs/similarity_flag.json'
+# task_description_file_path = '/root/project/KARMA/logs/task_description.json'
 
 # robots = [{'name': 'robot1', 'skills': ['GoToObject', 'OpenObject', 'CloseObject', 'BreakObject', 'SliceObject', 'SwitchOn', 'SwitchOff', 'PickupObject', 'PutObject', 'DropHandObject', 'ThrowObject', 'PushObject', 'PullObject']}]
 
@@ -46,7 +46,7 @@
 #         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 #         task_with_time = f"{task} ({current_time})"
 #         content = f"Please help me decompose the following tasks: {task}. Please output only the generated code."
-#         with open('/home/user/wzx/karma/prompts/instruction.txt', 'w', encoding='utf-8') as file:
+#         with open('/root/project/KARMA/prompts/instruction.txt', 'w', encoding='utf-8') as file:
 #             file.write(content)
         
 #         try:
@@ -143,10 +143,10 @@ from datetime import datetime
 import json
 import execute_LLM_plan
 
-history_file_path = '/home/user/wzx/karma/history_tasks/task_history.json'
-similarity_flag_path = '/home/user/wzx/karma/logs/similarity_flag.json'
-task_description_file_path = '/home/user/wzx/karma/logs/task_description.json'
-short_term_memory_path = '/home/user/wzx/karma/memory/memory3.json'
+history_file_path = '/root/project/KARMA/history_tasks/task_history.json'
+similarity_flag_path = '/root/project/KARMA/logs/similarity_flag.json'
+task_description_file_path = '/root/project/KARMA/logs/task_description.json'
+short_term_memory_path = '/root/project/KARMA/memory/memory3.json'
 
 robots = [{'name': 'robot1', 'skills': ['GoToObject', 'OpenObject', 'CloseObject', 'BreakObject', 'SliceObject', 'SwitchOn', 'SwitchOff', 'PickupObject', 'PutObject', 'DropHandObject', 'ThrowObject', 'PushObject', 'PullObject']}]
 
@@ -186,7 +186,7 @@ def save_task():
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         task_with_time = f"{task} ({current_time})"
         content = f"Please help me decompose the following tasks: {task}. Please output only the generated code."
-        with open('/home/user/wzx/karma/prompts/instruction.txt', 'w', encoding='utf-8') as file:
+        with open('/root/project/KARMA/prompts/instruction.txt', 'w', encoding='utf-8') as file:
             file.write(content)
         
         try:
