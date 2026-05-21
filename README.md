@@ -2,6 +2,8 @@
 
 The refactored KARMA repo follows a [MoETTA](../MoETTA)-style layout: **unified CLI entry**, **dataclass configs**, **layered `src/` package**, and **optional W&B observability** for easier experiments and debugging.
 
+For a comparison of the **paper**, **official upstream code**, and this **refactor** branch, see [docs/NOTE.md](docs/NOTE.md).
+
 ## Architecture
 
 ```

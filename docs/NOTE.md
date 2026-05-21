@@ -1,10 +1,12 @@
 # KARMA: Paper vs Code — Discrepancy & Refactor Status
 
+This document compares the **KARMA paper**, the **official upstream prototype**, and the **`refactor` branch** implementation in this repository.
+
 Comparison baseline:
 
 - **Paper:** Wang et al., *KARMA* (arXiv:2409.14908)
 - **Official prototype:** [WZX0Swarm0Robotics/KARMA `master`](https://github.com/WZX0Swarm0Robotics/KARMA/tree/master)
-- **Our branch:** `refactor` on [JohanHuang2005/KARMA](https://github.com/JohanHuang2005/KARMA)
+- **Refactored code:** [JohanHuang2005/KARMA `refactor`](https://github.com/JohanHuang2005/KARMA/tree/refactor)
 
 Last updated: **2026-05-21** (paper-alignment pass on `refactor`).
 
