@@ -2127,6 +2127,32 @@ def long_task_4(robot):
         json.dump(data, json_file, indent=4)
     print("Data saved to output.json")
 
+def long_task_5(robot):
+    """Wash an apple and place it on the countertop (paper-style composite task)."""
+    explore_count = 0
+    start_time = time.time()
+    available_positions = [
+        (1.25, 0, -1.75),
+        (-1.0, 0, 0),
+        (-0.25, 0, -1.5),
+        (-1.0, 0, -1.5),
+        (1.5, 0, -0.25),
+        (1.5, 0, 1.0),
+        (-2.0, 0, 2.0),
+        (0.5, 0, 1.5),
+    ]
+    explore_point_count = Explore(robot, "Apple", available_positions)
+    explore_count += explore_point_count
+    PickupObject(robot, "Apple")
+    GoToObject(robot, "Sink")
+    CleanObject(robot, "Apple")
+    GoToObject(robot, "CounterTop")
+    PutObject(robot, "Apple", "CounterTop")
+    end_time = time.time()
+    data = {"explore_count": explore_count, "total_time": end_time - start_time}
+    with open("output.json", "w") as json_file:
+        json.dump(data, json_file, indent=4)
+
 def long_task_6(robot): 
     explore_count=0
     start_time = time.time()
@@ -2270,6 +2296,7 @@ BENCHMARK_TASKS = {
     "long_task_2": long_task_2,
     "long_task_3": long_task_3,
     "long_task_4": long_task_4,
+    "long_task_5": long_task_5,
     "long_task_6": long_task_6,
 }
 

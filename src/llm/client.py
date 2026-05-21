@@ -5,7 +5,7 @@ import base64
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import requests
 
@@ -49,6 +49,50 @@ def get_chat_model() -> str:
 
 def get_vision_model() -> str:
     return os.environ.get("DASHSCOPE_VISION_MODEL", DEFAULT_VISION_MODEL)
+
+
+def get_embedding_model() -> str:
+    return os.environ.get("KARMA_EMBEDDING_MODEL", "text-embedding-3-large")
+
+
+def embed_texts_openai_compatible(
+    texts: Sequence[str],
+    *,
+    model: Optional[str] = None,
+    backend: str = "auto",
+) -> "np.ndarray":
+    """OpenAI-compatible /embeddings; falls back when keys missing."""
+    import numpy as np
+
+    model = model or get_embedding_model()
+    try:
+        key = get_api_key() if backend != "local" else ""
+    except RuntimeError:
+        key = ""
+    base = get_base_url()
+
+    if backend in ("auto", "openai", "dashscope") and key and key != "your_key":
+        url = f"{base}/embeddings"
+        payload = {"model": model, "input": list(texts)}
+        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+        resp = requests.post(url, headers=headers, json=payload, timeout=120)
+        if resp.ok:
+            data = resp.json()["data"]
+            ordered = sorted(data, key=lambda x: x["index"])
+            return np.asarray([row["embedding"] for row in ordered], dtype=np.float32)
+        if backend != "auto":
+            raise RuntimeError(f"Embedding API error {resp.status_code}: {resp.text[:300]}")
+
+    raise RuntimeError("Embedding backend unavailable; use local fallback")
+
+
+def resolve_chat_model(config_model: str | None = None) -> str:
+    """Env override (DashScope) wins; else paper/config default."""
+    return os.environ.get("DASHSCOPE_CHAT_MODEL") or config_model or get_chat_model()
+
+
+def resolve_vision_model(config_model: str | None = None) -> str:
+    return os.environ.get("DASHSCOPE_VISION_MODEL") or config_model or get_vision_model()
 
 
 def chat_completion(

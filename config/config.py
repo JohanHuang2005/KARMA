@@ -21,18 +21,22 @@ class EnvironmentConfig:
 
 @dataclass
 class LLMConfig:
-    chat_model: str = "qwen3.5-omni-flash"
-    vision_model: str = "qwen3.5-omni-flash"
+    chat_model: str = "gpt-4o"
+    vision_model: str = "gpt-4o"
     max_tokens: int = 4096
     temperature: float = 0.0
 
 
 @dataclass
 class MemoryConfig:
-    embedding_model: str = "all-mpnet-base-v2"
+    embedding_model: str = "text-embedding-3-large"
+    embedding_backend: Literal["auto", "openai", "dashscope", "local"] = "auto"
     use_short_term: bool = True
+    stm_top_k: int = 1
     rag_top_k: int = 3
     similarity_threshold: float = 0.3
+    replacement_policy: Literal["fifo", "lfu", "wtinylfu"] = "fifo"
+    max_stm_objects: int = 100
 
 
 @dataclass
@@ -61,8 +65,11 @@ class BenchmarkConfig:
         "long_task_2",
         "long_task_3",
         "long_task_4",
+        "long_task_5",
         "long_task_6",
+        "alfred_l",
     ] = "long_task_3"
+    alfred_l_category: Literal["all", "simple", "composite", "complex"] = "all"
     output_path: Path = field(default_factory=lambda: Path("artifacts/output.json"))
 
 

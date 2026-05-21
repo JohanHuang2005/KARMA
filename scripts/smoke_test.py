@@ -2,6 +2,7 @@
 """Non-GUI smoke tests for KARMA."""
 from __future__ import annotations
 
+import json
 import os
 import sys
 import traceback
@@ -150,6 +151,73 @@ def test_wandb_offline() -> None:
         record("wandb_offline", False, str(e)[:200])
 
 
+def test_memory_replacement() -> None:
+    from src.memory.replacement import apply_replacement
+
+    out = apply_replacement([], [{"objectId": "x", "objectType": "Apple"}], policy="fifo", max_objects=2)
+    record("memory_replacement", len(out) == 1, "fifo merge")
+
+
+def test_ltm_graph() -> None:
+    from src.memory.ltm_graph import serialize_graph_for_prompt
+
+    graph = {
+        "floor": {
+            "name": "floor 1",
+            "scene": "FloorPlan1",
+            "areas": [
+                {
+                    "name": "node 1",
+                    "type": "Area",
+                    "position": [0, 0, 0],
+                    "contains": ["Sink"],
+                    "adjacent_nodes": [],
+                    "objects": [],
+                }
+            ],
+        }
+    }
+    text = serialize_graph_for_prompt(graph)
+    record("ltm_graph", "adjacent nodes" in text and "Sink" in text)
+
+
+def test_alfred_l_dataset() -> None:
+    from src.benchmark.alfred_l import validate_alfred_l_dataset
+
+    report = validate_alfred_l_dataset()
+    record("alfred_l_dataset", report["valid"], f"{report['total_tasks']} tasks")
+
+
+def test_stm_retrieval_local() -> None:
+    from config import Config
+    from src.memory.retrieval import run_memory_retrieval
+    from src.paths import resolve
+
+    cfg = Config()
+    cfg.memory.embedding_backend = "local"
+    cfg.memory.similarity_threshold = 0.0
+    resolve("memory/analysis_results.json").write_text("{}", encoding="utf-8")
+    resolve("memory/memory3.json").write_text(
+        json.dumps(
+            [
+                {
+                    "objectId": "Apple|1",
+                    "objectType": "Apple",
+                    "position": {"x": 1.0, "y": 0.9, "z": 2.0},
+                    "state": "cleaned",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    resolve("prompts/instruction.txt").write_text(
+        "Please help me decompose: wash an apple.", encoding="utf-8"
+    )
+    metrics = run_memory_retrieval(cfg)
+    ok = metrics.get("stm_used") and resolve("prompts/short_term_memory.txt").read_text().strip()
+    record("stm_retrieval_local", bool(ok), f"score={metrics.get('best_similarity', 0):.2f}")
+
+
 def main() -> int:
     from src.paths import load_dotenv
 
@@ -161,6 +229,10 @@ def main() -> int:
         test_portable_cwd,
         test_imports,
         test_memory_diff,
+        test_memory_replacement,
+        test_ltm_graph,
+        test_alfred_l_dataset,
+        test_stm_retrieval_local,
         test_sentence_transformers,
         test_ai2thor,
         test_dashscope_key,

@@ -15,11 +15,8 @@ from src.llm.client import analyze_image_with_task
 from src.paths import ensure_runtime_env, resolve
 from src.memory.mapping import first_map, first_map_for_next_time, second_map
 from src.memory.save import compare_objects_location, read_json_file
-from src.memory.longterm import (
-    extract_regions_from_json,
-    get_divided_positions,
-    get_static_objects_in_regions,
-)
+from src.memory.ltm_graph import save_ltm_from_controller
+from src.memory.longterm import extract_regions_from_json, get_divided_positions, get_static_objects_in_regions
 from src.utils import configure_opencv_headless
 
 ensure_runtime_env()
@@ -213,13 +210,8 @@ for i in range (no_robot):
 memory_last_event=c.step(action="Done")    
 first_map(memory_last_event)
 first_map_for_next_time(memory_last_event)
-# Get divided positions
-centers = get_divided_positions(c)
-
-# Get static objects in regions
-regions = get_static_objects_in_regions(c, centers)
-# Save long-term memory
-save_regions_to_json(regions)
+# Save long-term memory (3DSG + planner prompt)
+save_ltm_from_controller(c, floor_id=floor_no)
 
 filename = str(resolve("memory/longterm_memory.json"))
 sentences = extract_regions_from_json(filename)
@@ -271,24 +263,41 @@ def exec_actions():
                     multi_agent_event = c.step(action="RotateRight", degrees=act['degrees'], agentId=act['agent_id'])
                     
                 elif act['action'] == 'PickupObject':
-                    multi_agent_event = c.step(action="PickupObject", objectId=act['objectId'], agentId=act['agent_id'], forceAction=True) 
+                    multi_agent_event = c.step(action="PickupObject", objectId=act['objectId'], agentId=act['agent_id'], forceAction=True)
+
+                elif act['action'] == 'OpenObject':
+                    multi_agent_event = c.step(action="OpenObject", objectId=act['objectId'], agentId=act['agent_id'], forceAction=True)
+
+                elif act['action'] == 'CloseObject':
+                    multi_agent_event = c.step(action="CloseObject", objectId=act['objectId'], agentId=act['agent_id'], forceAction=True)
+
+                elif act['action'] == 'SliceObject':
+                    multi_agent_event = c.step(action="SliceObject", objectId=act['objectId'], agentId=act['agent_id'], forceAction=True)
+
+                elif act['action'] == 'CleanObject':
+                    multi_agent_event = c.step(action="CleanObject", objectId=act['objectId'], agentId=act['agent_id'], forceAction=True)
+
+                elif act['action'] == 'BreakObject':
+                    multi_agent_event = c.step(action="BreakObject", objectId=act['objectId'], agentId=act['agent_id'], forceAction=True)
 
                 elif act['action'] == 'PutObject':
                     multi_agent_event = c.step(action="PutObject", objectId=act['objectId'], agentId=act['agent_id'], forceAction=True)
                     second_map(multi_agent_event)
-                    compare_objects_location(
-                        str(resolve("memory/objects_locations1.json")),
-                        str(resolve("memory/objects_locations2.json")),
-                        str(resolve("memory/memory3.json")),
-                    )
-                    first_map(multi_agent_event)
-                    # Adjust camera view for short-term memory snapshot
-                    c.step(action='LookDown',degrees=20)
+                    c.step(action='LookDown', degrees=20)
                     frame = multi_agent_event.frame
                     frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                     save_path = directory_path
                     filename = f"short_memory_{image_counter}.png"
                     save_agent_view(frame_bgr, save_path, filename)
+                    image_rel = f"memory/short_term/{filename}"
+                    compare_objects_location(
+                        str(resolve("memory/objects_locations1.json")),
+                        str(resolve("memory/objects_locations2.json")),
+                        str(resolve("memory/memory3.json")),
+                        image_path=image_rel,
+                        policy="fifo",
+                    )
+                    first_map(multi_agent_event)
                     image_counter += 1
 
                     task_description = load_task_description()

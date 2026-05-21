@@ -9,7 +9,7 @@ from loguru import logger
 from config import Config
 from src.utils import log_metrics, save_run_metrics, show_config, timer, wandb_log
 from src.paths import ensure_repo_cwd, ensure_runtime_dirs, resolve
-from src.memory.retrieval import main as run_memory_retrieval
+from src.memory.retrieval import run_memory_retrieval
 from src.llm.planner import main as run_planner
 
 
@@ -59,6 +59,16 @@ def pipeline(config: Config) -> dict:
         raise SystemExit(smoke_main())
 
     if job == "benchmark":
+        if config.benchmark.task_name == "alfred_l":
+            from src.benchmark.alfred_l import run_alfred_l_suite
+
+            metrics = run_alfred_l_suite(
+                category=config.benchmark.alfred_l_category,
+                dry_run=True,
+            )
+            log_metrics(config, metrics)
+            return metrics
+
         from src.benchmark.eval import run_benchmark
 
         metrics = run_benchmark(
@@ -73,10 +83,11 @@ def pipeline(config: Config) -> dict:
 
     if config.memory.use_short_term:
         logger.info("Running short-term memory retrieval + RAG")
-        run_memory_retrieval()
+        stm_metrics = run_memory_retrieval(config)
+        logger.info("STM metrics: {}", stm_metrics)
 
     logger.info("Running LLM planner")
-    run_planner()
+    run_planner(config)
 
     if config.task.skip_execution:
         logger.info("Planning complete (skip_execution=True)")

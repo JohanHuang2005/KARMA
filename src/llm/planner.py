@@ -1,6 +1,6 @@
 import json
 
-from src.llm.client import chat_completion
+from src.llm.client import chat_completion, resolve_chat_model
 from src.paths import resolve
 
 similarity_flag_path = resolve("logs/similarity_flag.json")
@@ -43,7 +43,10 @@ def load_similarity_flag():
         return False
 
 
-def main():
+def main(config=None):
+    from config import Config
+
+    cfg = config or Config()
     use_short_term_memory = load_similarity_flag()
 
     skills = load_file(resolve("prompts/skills.txt"))
@@ -71,7 +74,12 @@ def main():
     with open(messages_path, "w", encoding="utf-8") as file:
         json.dump(messages, file, ensure_ascii=False, indent=4)
 
-    response_content = chat_completion(messages, max_tokens=4096, temperature=0.0)
+    response_content = chat_completion(
+        messages,
+        model=resolve_chat_model(cfg.llm.chat_model),
+        max_tokens=cfg.llm.max_tokens,
+        temperature=cfg.llm.temperature,
+    )
 
     lines = response_content.split("\n")
     code_lines = []

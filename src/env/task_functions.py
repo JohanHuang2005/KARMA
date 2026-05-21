@@ -16,27 +16,55 @@ from src.env.executor import (
 
 # --- LLM-generated task functions below ---
 
-def pick_up_mug(robot):
-    # SubTask: Pick up a mug. (Skills Required: Explore, PickupObject)
-    # Since the location of the mug is not explicitly given in memory, we must explore.
-    # Mugs are typically found on CounterTop or in Cabinet/Drawer.
-    # Based on provided centers, CounterTop is at (-1.0, 0.00, -1.5) and (-0.25, 0.00, -1.5).
-    # We will prioritize exploring these high-probability locations first.
-
-    # 0: SubTask: Pick up a mug
-    # 1: Explore for Mug starting with likely locations (CounterTop).
-    # Prioritize centers with CounterTop first: (-1.0, 0.00, -1.5) then (-0.25, 0.00, -1.5)
+def slice_tomato(robot):
+    # 0: SubTask 1: Slice the Tomato
+    # 1: Explore the Knife.
+    # The knife is likely on a CounterTop or near the Stove/Prep area based on kitchen layout.
     available_positions = [
-        (-1.0, 0.00, -1.5),      # High likelihood (CounterTop present)
-        (-0.25, 0.00, -1.5),     # High likelihood (CounterTop present)
-        (-1.0, 0.00, 0.0),       # Medium likelihood (Drawer/Cabinet might contain mug)
-        (-2.0, 0.00, 2.0),       # Low likelihood (Fridge/GarbageCan)
-        (1.25, 0.00, -1.75),     # Low likelihood (ShelvingUnit)
-        (1.5, 0.00, -0.25),      # Very low (LightSwitch only)
-        (1.5, 0.00, 1.0),        # Empty
-        (0.5, 0.00, 1.5)         # Empty
+        (-0.25, 0, -1.5),  # Near stove/countertop
+        (1.25, 0, -1.75),  # Shelf/Shelving unit area
+        (-1.0, 0, 0),      # Drawer/CoffeeMachine area (knives often in drawers)
+        (-1.0, 0, -1.5),   # Center counter
+        (1.5, 0, -0.25),   # LightSwitch area (less likely for knife)
+        (1.5, 0, 1.0),     # Empty area
+        (1.25, 0, 1.75),   # Extrapolated shelf area if needed
+        (-2.0, 0, 2.0)     # Fridge/GarbageCan area
     ]
-    Explore(robot, 'Mug', available_positions)
+    Explore(robot, 'Knife', available_positions)
     
-    # 2: Pick up the Mug.
-    PickupObject(robot, 'Mug')
+    # 2: Pick up the Knife.
+    PickupObject(robot, 'Knife')
+    
+    # 3: Explore the Tomato.
+    # Tomatoes are usually found on a CounterTop or in the Fridge. Given the center points, CounterTop is most likely.
+    available_positions = [
+        (-0.25, 0, -1.5),  # Main counter
+        (-1.0, 0, -1.5),   # Center counter
+        (1.25, 0, -1.75),  # Shelf area (maybe fruit bowl?)
+        (-1.0, 0, 0),      # CounterTop near CoffeeMachine
+        (1.5, 0, -0.25),   # Unlikely
+        (1.5, 0, 1.0),     # Empty
+        (-2.0, 0, 2.0),    # Inside Fridge (if not on counter)
+        (1.25, 0, 1.75)    # Extra shelf
+    ]
+    Explore(robot, 'Tomato', available_positions)
+    
+    # 4: Slice the Tomato.
+    SliceObject(robot, 'Tomato')
+    
+    # 5: Explore the CounterTop.
+    # To put the knife back, we need to find a clean CounterTop.
+    available_positions = [
+        (-0.25, 0, -1.5),
+        (-1.0, 0, -1.5),
+        (-1.0, 0, 0),
+        (1.25, 0, -1.75),
+        (1.5, 0, -0.25),
+        (1.5, 0, 1.0),
+        (-2.0, 0, 2.0),
+        (1.25, 0, 1.75)
+    ]
+    Explore(robot, 'CounterTop', available_positions)
+    
+    # 6: Put the Knife back on the CounterTop.
+    PutObject(robot, 'Knife', 'CounterTop')
