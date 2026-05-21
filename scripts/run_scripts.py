@@ -1,16 +1,31 @@
 import subprocess
+import sys
+from pathlib import Path
 
-def run_script(script_path):
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+
+def run_script(script_path: Path) -> None:
     try:
-        result = subprocess.run(['python', script_path], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        print(f"Output of {script_path}:\n{result.stdout}")
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            check=True,
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+        )
+        print(f"Output of {script_path.name}:\n{result.stdout}")
     except subprocess.CalledProcessError as e:
-        print(f"Error running {script_path}:\n{e.stderr}")
+        print(f"Error running {script_path.name}:\n{e.stderr}")
 
-# 先运行 llm_as_planner.py
-print("Running llm_as_planner.py...")
-run_script('/root/project/KARMA/scripts/llm_as_planner.py')
 
-# 然后运行 execute_LLM_plan.py
-print("Running execute_LLM_plan.py...")
-run_script('/root/project/KARMA/scripts/execute_LLM_plan.py')
+print("Running query_with_short_term_memory (via src)...")
+from src.memory.retrieval import main as run_retrieval
+
+run_retrieval()
+
+print("Running llm_as_planner (via src)...")
+from src.llm.planner import main as run_planner
+
+run_planner()

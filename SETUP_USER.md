@@ -1,16 +1,17 @@
-# KARMA — What you must provide externally
+# KARMA — External assets you must provide
 
-The repo environment (`.venv`, paths, scripts) is configured under `/root/project/KARMA`.
-**Three assets cannot be bundled** and must be supplied by you (download or API key).
+The repo environment (`.venv`, paths, scripts) lives under the KARMA root.
+**Three assets are not bundled** and must be supplied via download or API key.
 
 ## 1. Alibaba Bailian / DashScope API key (required for full pipeline)
 
-Used by `scripts/dashscope_client.py` (model **qwen3.5-omni-flash**):
-- `scripts/llm_as_planner.py` — task code generation
-- `scripts/execute_LLM_plan.py` — vision for short-term object **state**
+Used by `src/llm/client.py` (model **qwen3.5-omni-flash**):
+
+- `src/llm/planner.py` — task code generation
+- `src/env/executor.py` — vision for short-term object **state**
 
 ```bash
-cd /root/project/KARMA
+cd KARMA
 cp .env.example .env
 # Edit .env:
 #   DASHSCOPE_API_KEY=sk-...
@@ -18,7 +19,7 @@ cp .env.example .env
 source .env
 ```
 
-Without this key, **memory retrieval + STM scripts can run**, but **planning and vision analysis will fail**.
+Without this key, **memory retrieval can run**, but **planning and vision analysis will fail**.
 
 ---
 
@@ -28,57 +29,59 @@ On first `Controller(...)` with `CloudRendering`, ai2thor downloads:
 
 `thor-CloudRendering-*.zip` (~797 MB)
 
-- **国内无官方镜像**；推荐用脚本 **aria2 多线程** 从 AWS S3 加速下载：
+There is **no official China mirror**; use the script with **aria2 multi-connection** download from AWS S3:
 
 ```bash
 bash scripts/download_assets_mirror.sh ai2thor
 ```
 
-| 项目 | 值 |
-|------|-----|
-| 直链 (S3) | `http://s3-us-west-2.amazonaws.com/ai2-thor-public/builds/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917.zip` |
-| 校验文件 | 同上路径 `.sha256` |
-| 安装目录 | `~/.ai2thor/releases/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917/` |
+| Item | Value |
+|------|-------|
+| Direct link (S3) | `http://s3-us-west-2.amazonaws.com/ai2-thor-public/builds/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917.zip` |
+| Checksum | same path with `.sha256` suffix |
+| Install dir | `~/.ai2thor/releases/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917/` |
 
 **Verify after download:**
 
 ```bash
-source /root/project/KARMA/.venv/bin/activate
-export KARMA_ROOT=/root/project/KARMA PYTHONPATH=$KARMA_ROOT/scripts
+source .venv/bin/activate
+export KARMA_ROOT=$PWD
 python -c "from ai2thor.controller import Controller; from ai2thor.platform import CloudRendering; c=Controller(scene='FloorPlan1', width=300, height=300, platform=CloudRendering); c.step('Pass'); c.stop(); print('ai2thor OK')"
 ```
 
-On a machine **with a display**, you can also use the legacy local Unity build (no CloudRendering zip); this server uses headless CloudRendering.
+On a machine **with a display**, you can use the legacy local Unity build instead; headless servers use CloudRendering.
 
 ---
 
-## 3. Sentence-Transformers model `all-mpnet-base-v2` (~420 MB, Hugging Face)
+## 3. Sentence-Transformers model `all-mpnet-base-v2` (~420 MB)
 
-Used by `scripts/query_with_short_term_memory.py` for STM / experience retrieval.
+Used by `src/memory/retrieval.py` for STM and experience RAG.
 
-**镜像下载（推荐）：**
+**Recommended mirror download:**
 
 ```bash
-cd /root/project/KARMA
+cd KARMA
 source .venv/bin/activate
-bash scripts/download_assets_mirror.sh mpnet    # HF 镜像 hf-mirror.com
-# 或魔搭：
+bash scripts/download_assets_mirror.sh mpnet    # HF mirror hf-mirror.com
+# Or ModelScope:
 MPNET_MIRROR=modelscope bash scripts/download_assets_mirror.sh mpnet
 ```
 
-手动方式：
+Manual download:
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
 huggingface-cli download sentence-transformers/all-mpnet-base-v2
 ```
 
-| 镜像 | 地址 |
-|------|------|
-| HF 镜像站 | https://hf-mirror.com/sentence-transformers/all-mpnet-base-v2 |
-| ModelScope 魔搭 | https://www.modelscope.cn/models/sentence-transformers/all-mpnet-base-v2 |
+| Mirror | URL |
+|--------|-----|
+| HF mirror | https://hf-mirror.com/sentence-transformers/all-mpnet-base-v2 |
+| ModelScope | https://www.modelscope.cn/models/sentence-transformers/all-mpnet-base-v2 |
 
-缓存：`~/.cache/huggingface/` 或 ModelScope `~/.cache/modelscope/hub/`
+Cache: `~/.cache/huggingface/` or ModelScope `~/.cache/modelscope/hub/`
+
+`HF_ENDPOINT=https://hf-mirror.com` is set by default in `.env.example` and `scripts/setup_env.sh`.
 
 ---
 
@@ -86,34 +89,23 @@ huggingface-cli download sentence-transformers/all-mpnet-base-v2
 
 | Item | Purpose |
 |------|---------|
-| `ffmpeg` | Episode video export in `execute_LLM_plan.py` |
-| X11 / VNC display | `cv2.imshow` in GUI / live viewer (headless runs can patch to disable) |
-| Conda `environment.yml` | Original author env; we use `requirements.txt` + `.venv` instead |
+| `ffmpeg` | Episode video export in `src/env/executor.py` |
+| X11 / VNC display | Tk GUI and `cv2.imshow` live viewer |
+| Conda `environment.yml` | Original author env; we use `requirements.txt` + `.venv` |
 
 ---
 
 ## Quick start (after items 1–3)
 
 ```bash
-cd /root/project/KARMA
-bash scripts/setup_env.sh          # once: creates .venv
+cd KARMA
+bash scripts/setup_env.sh
 source .venv/bin/activate
-export KARMA_ROOT=$PWD PYTHONPATH=$PWD/scripts
-source .env                        # OPENAI_API_KEY
+export KARMA_ROOT=$PWD
+source .env
 
-# Component checks (no GUI):
 python scripts/smoke_test.py
 
-# Full interactive flow (needs display for Tk + OpenCV windows):
-python scripts/GUI_karma.py
+# Interactive flow (needs display):
+python main.py base --task.use_gui
 ```
-
----
-
-## Already configured in this workspace
-
-- [x] Python `.venv` + `requirements.txt` (CPU PyTorch)
-- [x] Hardcoded `/home/user/wzx/karma` paths → `/root/project/KARMA`
-- [x] `scripts/karma_paths.py`, `scripts/setup_env.sh`, `scripts/smoke_test.py`
-- [x] `memory/short_term/` directory
-- [x] `llm_as_planner.py` / `query_with_short_term_memory.py` — no longer run destructive code on import

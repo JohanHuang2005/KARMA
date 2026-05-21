@@ -16,19 +16,27 @@ from src.env.executor import (
 
 # --- LLM-generated task functions below ---
 
-def wash_apple(robot):
-    GoToObject(robot, 'Apple')
-    PickupObject(robot, 'Apple')
+def pick_up_mug(robot):
+    # SubTask: Pick up a mug. (Skills Required: Explore, PickupObject)
+    # Since the location of the mug is not provided in memory, we must explore.
+    # Based on typical kitchen layouts and the provided center points, mugs are often found on CounterTop or in Cabinet/Drawer.
+    # We prioritize checking CounterTop first as it's a common place for mugs.
+
+    # 0: Explore potential locations for the Mug
+    # Prioritizing CounterTop (-1.0, 0.00, -1.5) and nearby areas like StoveBurner or Drawer if not found.
     available_positions = [
-        (-1.0, 0.00, -1.5),
-        (-0.25, 0.00, -1.5),
-        (-2, 0.00, 2.0),
-        (1.25, 0.00, -1.75),
-        (1.5, 0.00, -0.25),
-        (0.5, 0.00, 1.5),
-        (-1, 0.00, 0.0),
-        (1.5, 0.00, 1.0),
+        (-1.0, 0.00, -1.5),   # Center point with CounterTop
+        (-0.25, 0.00, -1.5),  # Center point with CounterTop
+        (-1.0, 0.00, 0.0),    # Center point with CounterTop
+        (-1.0, 0.00, -1.75),  # Nearby to CounterTop
+        (-1.0, 0.00, -1.25),  # Nearby to CounterTop
+        (-1.0, 0.00, -1.0),   # Nearby to CounterTop
+        (-1.0, 0.00, -2.0),   # Farther away
+        (-1.0, 0.00, -2.5)    # Very far
     ]
-    Explore(robot, 'Sink', available_positions)
-    GoToObject(robot, 'Sink')
-    CleanObject(robot, 'Apple')
+    
+    # 1: Find the Mug
+    Explore(robot, 'Mug', available_positions)
+    
+    # 2: Pick up the Mug
+    PickupObject(robot, 'Mug')

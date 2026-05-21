@@ -16,6 +16,18 @@ from config import Config
 from src.paths import ARTIFACTS_DIR, LOGS_DIR, ensure_runtime_dirs
 
 
+def configure_opencv_headless() -> None:
+    """No-op OpenCV GUI calls when DISPLAY is unavailable (headless servers)."""
+    import os
+
+    if os.environ.get("DISPLAY"):
+        return
+    import cv2
+
+    cv2.imshow = lambda *args, **kwargs: None  # type: ignore[assignment]
+    cv2.waitKey = lambda *args, **kwargs: -1  # type: ignore[assignment]
+
+
 def setup_logger(run_name: str = "karma") -> None:
     ensure_runtime_dirs()
     log_dir = ARTIFACTS_DIR / "logs"
@@ -69,10 +81,10 @@ def wandb_log(func: Callable) -> Callable:
 
         env_file = Path(".env")
         if env_file.exists():
-            wandb.login(
-                key=get_key(".env", "WANDB_API_KEY"),
-                host=get_key(".env", "WANDB_BASE_URL") or None,
-            )
+            api_key = get_key(".env", "WANDB_API_KEY")
+            base_url = get_key(".env", "WANDB_BASE_URL")
+            if api_key:
+                wandb.login(key=api_key, host=base_url or None)
         wandb.init(
             project=config.env.project,
             name=config.env.name or config.env.job_type,

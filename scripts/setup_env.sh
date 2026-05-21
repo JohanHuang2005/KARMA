@@ -32,6 +32,6 @@ fi
 echo "KARMA env ready."
 echo "  KARMA_ROOT=$KARMA_ROOT"
 echo "  Python: $(which python)"
-echo "  DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:+set}${DASHSCOPE_API_KEY:-NOT SET}"
+echo "  DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:+set }${DASHSCOPE_API_KEY:-NOT SET}"
 echo "  Model: ${DASHSCOPE_CHAT_MODEL:-qwen3.5-omni-flash}"
 echo "  HF_ENDPOINT: ${HF_ENDPOINT}"

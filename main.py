@@ -20,7 +20,7 @@ from src.utils import setup_logger
 from src.pipeline import pipeline
 
 
-@logger.catch()
+@logger.catch(reraise=True)
 def main(config: Config) -> None:
     setup_logger(config.env.name or config.env.job_type)
     if config.task.use_gui:

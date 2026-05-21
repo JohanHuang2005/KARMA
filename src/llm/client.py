@@ -9,15 +9,16 @@ from typing import Any, Dict, List, Optional, Union
 
 import requests
 
-# Beijing region compatible-mode endpoint (百炼 / DashScope)
+# Beijing region DashScope compatible-mode endpoint
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 DEFAULT_CHAT_MODEL = "qwen3.5-omni-flash"
 DEFAULT_VISION_MODEL = "qwen3.5-omni-flash"
 
 
 def _load_dotenv() -> None:
-    root = Path(__file__).resolve().parent.parent
-    env_file = root / ".env"
+    from src.paths import KARMA_ROOT
+
+    env_file = KARMA_ROOT / ".env"
     if not env_file.exists():
         return
     for line in env_file.read_text(encoding="utf-8").splitlines():

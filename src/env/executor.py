@@ -20,8 +20,11 @@ from src.memory.longterm import (
     get_divided_positions,
     get_static_objects_in_regions,
 )
+from src.utils import configure_opencv_headless
 
 ensure_runtime_env()
+configure_opencv_headless()
+
 import json
 import importlib
 import base64
@@ -52,7 +55,7 @@ def analyze_image(image_path, task):
 # Function to analyze images in a directory with a given task
 
 # def analyze_images_in_directory(directory, task):
-#     # 尝试读取现有的JSON文件
+#     # Load existing JSON if present
 #     results_file_path = os.path.join(directory, '/root/project/KARMA/memory/analysis_results.json')
 #     if os.path.exists(results_file_path):
 #         with open(results_file_path, 'r', encoding='utf-8') as file:
@@ -60,14 +63,14 @@ def analyze_image(image_path, task):
 #     else:
 #         results = {}
 
-#     # 对每个图像文件进行分析并追加新结果
+#     # Analyze each image and append results
 #     for filename in os.listdir(directory):
 #         if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff')):
 #             image_path = os.path.join(directory, filename)
 #             result = analyze_image(image_path, task)
-#             # 从返回结果中提取所需内容并添加到结果字典中
+#             # Parse vision output into result dict
 #             content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
-#             # 将结果分开保存
+#             # Split object:state lines
 #             objects_states = {}
 #             for line in content.split('\n'):
 #                 if ': ' in line:
@@ -75,35 +78,35 @@ def analyze_image(image_path, task):
 #                     objects_states[obj] = state
 #             results[filename] = objects_states
 
-#     # 将合并后的结果保存到JSON文件
+#     # Write merged results to JSON
 #     with open(results_file_path, 'w', encoding='utf-8') as file:
 #         json.dump(results, file, ensure_ascii=False, indent=4)
 
 #     return results
 
 def analyze_specified_image(directory, filename, task):
-    # 尝试读取现有的JSON文件
+    # Load existing JSON if present
     if os.path.exists(results_file_path):
         with open(results_file_path, 'r', encoding='utf-8') as file:
             results = json.load(file)
     else:
         results = {}
 
-    # 构建图像文件路径
+    # Build image file path
     image_path = os.path.join(directory, filename)
     if os.path.isfile(image_path) and image_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff')):
         result = analyze_image(image_path, task)
-        # 从返回结果中提取所需内容并添加到结果字典中
+        # Parse vision output into result dict
         content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
-        # 将结果分开保存
+        # Split object:state lines
         objects_states = {}
         for line in content.split('\n'):
             if ': ' in line:
-                obj, state = line.split(': ', 1)  # 修改为分割一次
+                obj, state = line.split(': ', 1)  # split once
                 objects_states[obj] = state
         results[filename] = objects_states
 
-    # 将合并后的结果保存到JSON文件
+    # Write merged results to JSON
     with open(results_file_path, 'w', encoding='utf-8') as file:
         json.dump(results, file, ensure_ascii=False, indent=4)
 
@@ -215,7 +218,7 @@ centers = get_divided_positions(c)
 
 # Get static objects in regions
 regions = get_static_objects_in_regions(c, centers)
-#保存long-term memory
+# Save long-term memory
 save_regions_to_json(regions)
 
 filename = str(MEMORY_DIR / "longterm_memory.json")
@@ -284,7 +287,7 @@ def exec_actions():
                         str(MEMORY_DIR / "memory3.json"),
                     )
                     first_map(multi_agent_event)
-                    #调整视角，用于拍摄short-term memory的图片
+                    # Adjust camera view for short-term memory snapshot
                     c.step(action='LookDown',degrees=20)
                     frame = multi_agent_event.frame
                     frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
@@ -989,7 +992,7 @@ def ThrowObject(robot, sw_obj):
 def Explore(robot, sw_obj,available_positions):   
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #     (1.25, 0, -1.75),
     #     (-1.0, 0, 0),
@@ -1022,7 +1025,7 @@ def execute_tasks(robot):
         if task is None:
             break
         task_function = task['function']
-        task_function(robot)  # 将 robot 传递给任务函数
+        task_function(robot)  # pass robot to task function
         task_queue.task_done()
 
 def add_task_to_queue(task_function, robot):
@@ -1048,9 +1051,9 @@ def parse_and_execute_task(robot):
         print(f"An error occurred: {e}")
 
 def parse_task(robot, task_description):
-    # 使用传入的task_description来执行任务
+    # Execute using the provided task_description
     print(f"Executing task: {task_description}")
-    # 添加执行任务的代码
+    # TODO: add execution logic
     return 
 
 def run_scripts():

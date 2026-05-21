@@ -4,8 +4,11 @@ __pycache__/
 *.pyc
 scripts/agent_*/
 scripts/top_view/
+src/benchmark/agent_*/
+src/benchmark/top_view/
 memory/short_term/*.png
 artifacts/logs/
 wandb/
+longterm_memory.json
 .DS_Store
 .cursorrules

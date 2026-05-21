@@ -6,7 +6,7 @@ def replace_explore_with_custom(func):
         task_code = func.__code__
         task_globals = func.__globals__.copy()
         
-        # 定义我们自定义的探索逻辑
+        # Custom exploration logic
         def custom_explore(robot, object_name):
             exit_goto = False
             exit_goto_finish = False
@@ -34,7 +34,7 @@ def replace_explore_with_custom(func):
             
             print(explore_point_count)
         
-        # 替换Explore函数为custom_explore
+        # Replace Explore with custom_explore in the task namespace
         task_globals['Explore'] = custom_explore
         
         return func(robot, *args, **kwargs)

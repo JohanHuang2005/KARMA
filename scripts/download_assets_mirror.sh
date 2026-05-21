@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Download KARMA external assets via China-friendly mirrors / accelerated tools.
 #
-# 1) all-mpnet-base-v2  — HF 镜像 (hf-mirror) 或 ModelScope 魔搭
-# 2) AI2-THOR CloudRendering — 无官方国内镜像；使用 aria2 多线程从 S3 加速拉取并解压
+# 1) all-mpnet-base-v2  — HF mirror (hf-mirror.com) or ModelScope
+# 2) AI2-THOR CloudRendering — no official CN mirror; aria2 multi-connection S3 download
 #
 # Usage:
 #   bash scripts/download_assets_mirror.sh          # both
@@ -16,7 +16,7 @@ cd "$ROOT"
 # shellcheck disable=SC1091
 [[ -f "$ROOT/.venv/bin/activate" ]] && source "$ROOT/.venv/bin/activate"
 export KARMA_ROOT="$ROOT"
-export PYTHONPATH="$ROOT/scripts:${PYTHONPATH:-}"
+export PYTHONPATH="$ROOT:${PYTHONPATH:-}"
 
 MPNET_BACKEND="${MPNET_MIRROR:-hf}"   # hf | modelscope
 AI2_COMMIT="f0825767cd50d69f666c7f282e54abfe58f1e917"
@@ -30,7 +30,7 @@ AI2_ZIP="${AI2_TMP}/${AI2_NAME}.zip"
 log() { echo "[download] $*"; }
 
 download_mpnet_hf_mirror() {
-  log "=== [1/2] all-mpnet-base-v2 via HF 镜像 (hf-mirror.com) ==="
+  log "=== [1/2] all-mpnet-base-v2 via HF mirror (hf-mirror.com) ==="
   export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
   export HF_HUB_DISABLE_XET="${HF_HUB_DISABLE_XET:-1}"
   log "HF_ENDPOINT=$HF_ENDPOINT  HF_HUB_DISABLE_XET=$HF_HUB_DISABLE_XET"
@@ -56,7 +56,7 @@ print('sentence-transformers OK, dim=', m.get_sentence_embedding_dimension())
 }
 
 download_mpnet_modelscope() {
-  log "=== [1/2] all-mpnet-base-v2 via ModelScope 魔搭 (需 Python>=3.9) ==="
+  log "=== [1/2] all-mpnet-base-v2 via ModelScope (Python>=3.9) ==="
   pyver="$(python -c 'import sys; print(sys.version_info[:2])')"
   log "Python $pyver"
   pip install -q "modelscope>=1.15" 2>/dev/null || pip install modelscope
@@ -71,7 +71,7 @@ print('sentence-transformers OK, dim=', m.get_sentence_embedding_dimension())
 }
 
 download_ai2thor_build() {
-  log "=== [2/2] AI2-THOR CloudRendering (~797MB, aria2 多线程) ==="
+  log "=== [2/2] AI2-THOR CloudRendering (~797MB, aria2 multi-connection) ==="
   if [[ -d "${AI2_RELEASES}/${AI2_NAME}" ]]; then
     log "Already installed: ${AI2_RELEASES}/${AI2_NAME}"
     return 0

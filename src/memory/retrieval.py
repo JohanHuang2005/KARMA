@@ -5,49 +5,50 @@ from sentence_transformers import SentenceTransformer, util
 
 from src.paths import EXPERIENCE_DIR, MEMORY_DIR, PROMPTS_DIR, ensure_hf_mirror
 
+
 def load_file(file_path):
-    with open(file_path, 'r', encoding='utf-8') as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         return file.read().strip()
 
+
 def extract_task(description):
-    # 找到冒号的位置
-    colon_index = description.find(':')
+    colon_index = description.find(":")
     if colon_index != -1:
-        # 提取冒号后面到第一个句号之间的部分
-        task = description[colon_index + 1:].split('.')[0].strip()
+        # Text between ':' and the first '.'
+        task = description[colon_index + 1 :].split(".")[0].strip()
         return task
     return None
 
+
 def load_json(file_path):
-    with open(file_path, 'r', encoding='utf-8') as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         return json.load(file)
 
+
 def save_to_file(file_path, content):
-    with open(file_path, 'w', encoding='utf-8') as file:
+    with open(file_path, "w", encoding="utf-8") as file:
         file.write(content)
 
+
 def update_memory_with_state(memory_file, analysis_file):
-    # 读取 memory3.json 文件
-    with open(memory_file, 'r', encoding='utf-8') as file:
+    with open(memory_file, "r", encoding="utf-8") as file:
         memory_data = json.load(file)
-    
-    # 读取 analysis_results.json 文件
-    with open(analysis_file, 'r', encoding='utf-8') as file:
+
+    with open(analysis_file, "r", encoding="utf-8") as file:
         analysis_data = json.load(file)
-    
-    # 提取 analysis_results.json 中最后一组数据的状态信息
+
+    # Use the latest vision analysis entry
     last_analysis_key = list(analysis_data.keys())[-1]
     state_data = {obj.lower(): state for obj, state in analysis_data[last_analysis_key].items()}
 
-    # 更新 memory3.json 中的状态信息
     for item in memory_data:
-        object_type = item.get('objectType', '').lower()
+        object_type = item.get("objectType", "").lower()
         if object_type in state_data:
-            item['state'] = state_data[object_type]
-    
-    # 将更新后的数据写回 memory3.json 文件
-    with open(memory_file, 'w', encoding='utf-8') as file:
+            item["state"] = state_data[object_type]
+
+    with open(memory_file, "w", encoding="utf-8") as file:
         json.dump(memory_data, file, ensure_ascii=False, indent=4)
+
 
 def main():
     analysis_file_path = str(MEMORY_DIR / "analysis_results.json")
@@ -114,23 +115,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # analysis_results = load_json(analysis_results_path)
-
-    # best_match = None
-    # best_match_score = -1
-    # for image, objects in analysis_results.items():
-    #     for obj, state in objects.items():
-    #         obj_embedding = model.encode(obj, convert_to_tensor=True)
-    #         score = util.pytorch_cos_sim(query_embedding, obj_embedding)[0].cpu().numpy()
-    #         if score > best_match_score:
-    #             best_match_score = score
-    #             best_match = (image, obj, state)
-    
-    # if best_match:
-    #     image, obj, state = best_match
-    #     analysis_content = f"{obj}'s state is {state}."
-    #     formatted_content += f"\n{analysis_content}"
-
-    # save_to_file(short_term_memory_file_path, formatted_content)
-
-    # print(f"Top matching item and analysis result have been saved to {short_term_memory_file_path}")

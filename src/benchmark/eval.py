@@ -23,6 +23,13 @@ from src.memory.longterm import (
 )
 from src.memory.mapping import first_map, first_map_for_next_time, second_map
 from src.memory.save import compare_objects_location, read_json_file
+from src.paths import MEMORY_DIR, ensure_runtime_env
+from src.utils import configure_opencv_headless
+
+ensure_runtime_env()
+configure_opencv_headless()
+
+
 def save_agent_view(image, save_path, filename):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -78,27 +85,30 @@ floor_no = 1
 # c = Controller( height=1000, width=1000)
 # c.reset("FloorPlan" + str(floor_no)) 
 no_robot = len(robots)
-objects_locations1 = './objects_locations.json'
-# initialize n agents into the scene
-c = Controller(
+objects_locations1 = str(MEMORY_DIR / "objects_locations.json")
+# initialize n agents into the scene (CloudRendering for headless Linux)
+_controller_kwargs = dict(
     agentMode="default",
     visibilityDistance=100,
     scene="FloorPlan1",
-
-    # step sizes
     gridSize=0.25,
     snapToGrid=False,
     rotateStepDegrees=20,
     quality='Low',
-    # image modalities
     renderDepthImage=False,
     renderInstanceSegmentation=False,
     agentCount=no_robot,
-    # camera properties
     width=1000,
     height=1000,
-    fieldOfView=90
+    fieldOfView=90,
 )
+try:
+    from ai2thor.platform import CloudRendering
+    _controller_kwargs["platform"] = CloudRendering
+except ImportError:
+    pass
+
+c = Controller(**_controller_kwargs)
 multi_agent_event = c.step(action="Done") 
 # multi_agent_event = c.step(dict(action='Initialize', agentMode="default", snapGrid=False, gridSize=0.25, rotateStepDegrees=20, visibilityDistance=100, fieldOfView=90, agentCount=no_robot))
 
@@ -124,7 +134,7 @@ centers = get_divided_positions(c)
 
 # Get static objects in regions
 regions = get_static_objects_in_regions(c, centers)
-#保存long-term memory
+# Save long-term memory
 save_regions_to_json(regions)
 
 filename = 'longterm_memory.json'
@@ -187,9 +197,13 @@ def exec_actions():
                 elif act['action'] == 'PutObject':
                     multi_agent_event = c.step(action="PutObject", objectId=act['objectId'], agentId=act['agent_id'], forceAction=True)
                     second_map(multi_agent_event)
-                    compare_objects_location('objects_locations1.json', 'objects_locations2.json', 'memory3.json')
+                    compare_objects_location(
+                        str(MEMORY_DIR / "objects_locations1.json"),
+                        str(MEMORY_DIR / "objects_locations2.json"),
+                        str(MEMORY_DIR / "memory3.json"),
+                    )
                     first_map(multi_agent_event)
-                    #调整视角，用于拍摄short-term memory的图片
+                    # Adjust camera view for short-term memory snapshot
                     c.step(action='LookDown',degrees=20)
                     frame = multi_agent_event.frame
                     frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
@@ -223,7 +237,11 @@ def exec_actions():
                     else:
                         print("Action failed:", multi_agent_event1['errorMessage'])
                     second_map(multi_agent_event1)
-                    compare_objects_location('objects_locations1.json', 'objects_locations2.json', 'memory3.json')
+                    compare_objects_location(
+                        str(MEMORY_DIR / "objects_locations1.json"),
+                        str(MEMORY_DIR / "objects_locations2.json"),
+                        str(MEMORY_DIR / "memory3.json"),
+                    )
                 elif act['action'] == 'Done':
                     multi_agent_event = c.step(action="Done")
                 elif act['action'] == 'CloseObject':
@@ -833,7 +851,7 @@ def long_task_1(robot):
     start_time = time.time()
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (0.25, 0.00, -1.5),
@@ -866,7 +884,7 @@ def long_task_1(robot):
     
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (1.5, 0.00, -1.5),
@@ -898,7 +916,7 @@ def long_task_1(robot):
     ######wash apple and place on countertop######
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (-2.0, 0.00, 2.0),
@@ -941,7 +959,7 @@ def long_task_1(robot):
     # ###################put_pot_on_conutertop##########
     # # exit_goto = False
     # # exit_goto_finish = False
-    # # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # # Random exploration waypoints (9 points covering most of the map)
     # # available_positions = [
     # #     (-1, 0.00, 0.0),
     # #     (0.25, 0.00, -1.5),
@@ -991,7 +1009,7 @@ def long_task_2(robot):
     explore_count=0
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (1.5, 0.00, -1.5),
@@ -1024,7 +1042,7 @@ def long_task_2(robot):
     
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1.0, 0.00, -1.50),
         (1.5, 0.00, -1.5),
@@ -1067,7 +1085,7 @@ def long_task_2(robot):
     ################# wash apple and place on the counter  ##################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (-2.0, 0.00, 2.0),
@@ -1110,7 +1128,7 @@ def long_task_2(robot):
     ############################## put bread on plate#####################################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
             (-1.0, 0, 0),
             (-0.25, 0, -1.5),
@@ -1144,7 +1162,7 @@ def long_task_2(robot):
     ################# throw the knife in the trash########################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
             (-1.0, 0, 0),
             (1.5, 0, -1.5),
@@ -1178,7 +1196,7 @@ def long_task_2(robot):
     ##################put_red food_on_plate##########
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1.0, 0, 0),
         (-1.0, 0, -1.5),
@@ -1209,7 +1227,7 @@ def long_task_2(robot):
     PickupObject(robot,'Tomato')
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1.0, 0, -1.5),
         (1.25, 0, -1.75),
@@ -1256,7 +1274,7 @@ def long_task_3(robot):
     ################# wash Tomato and place on the counter  ##################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域)
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (1.5, 0.00, -1.5),
@@ -1306,7 +1324,7 @@ def long_task_3(robot):
     ################# wash apple and place on the counter  ##################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (-2.0, 0.00, 2.0),
@@ -1351,7 +1369,7 @@ def long_task_3(robot):
    
     # exit_goto = False
     # exit_goto_finish = False
-    # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #     (-1, 0.00, 0.0),
     #     (-2.0, 0.00, 2.0),
@@ -1397,7 +1415,7 @@ def long_task_3(robot):
     #############slice tomato#####################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (1.25, 0, -1.75),
         (-1.0, 0, 0),
@@ -1430,7 +1448,7 @@ def long_task_3(robot):
     
     # exit_goto = False
     # exit_goto_finish = False
-    # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #     (-2.0, 0, 2.0),
     #     (-1.0, 0, 0),
@@ -1457,7 +1475,7 @@ def long_task_3(robot):
     # explore_count=explore_count+explore_point_count
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (0.25, 0.00, -1.5),
@@ -1494,7 +1512,7 @@ def long_task_3(robot):
     ##############slice Apple#####################
     # exit_goto = False
     # exit_goto_finish = False
-    # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #         (-2.0, 0, 2.0),
     #         (-1.0, 0, 0),
@@ -1521,7 +1539,7 @@ def long_task_3(robot):
     # explore_count=explore_count+explore_point_count
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (1.25, 0, -1.75),
         (-1.0, 0, 0),
@@ -1553,7 +1571,7 @@ def long_task_3(robot):
     
     # exit_goto = False
     # exit_goto_finish = False
-    # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #     (-2.0, 0, 2.0),
     #     (-1.0, 0, 0),
@@ -1580,7 +1598,7 @@ def long_task_3(robot):
     # explore_count=explore_count+explore_point_count
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (0.25, 0.00, -1.5),
@@ -1618,7 +1636,7 @@ def long_task_3(robot):
     ##############slice Lettuce#####################
     # exit_goto = False
     # exit_goto_finish = False
-    # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #         (-2.0, 0, 2.0),
     #         (-1.0, 0, 0),
@@ -1649,7 +1667,7 @@ def long_task_3(robot):
     
     # exit_goto = False
     # exit_goto_finish = False
-    # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #     (-2.0, 0, 2.0),
     #     (-1.0, 0, 0),
@@ -1676,7 +1694,7 @@ def long_task_3(robot):
     # explore_count=explore_count+explore_point_count
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (0.25, 0.00, -1.5),
@@ -1713,7 +1731,7 @@ def long_task_3(robot):
     ###################put_apple_on_plate##########
     # exit_goto = False
     # exit_goto_finish = False
-    # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #     (-2.0, 0, 2.0),
     #     (-1.0, 0, 0),
@@ -1736,7 +1754,7 @@ def long_task_3(robot):
     # explore_count=explore_count+explore_point_count
     # exit_goto = False
     # exit_goto_finish = False
-    # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #     (-1, 0.00, 0.0),
     #     (0.25, 0.00, -1.5),
@@ -1767,7 +1785,7 @@ def long_task_3(robot):
     # PickupObject(robot,'Apple')
     # exit_goto = False
     # exit_goto_finish = False
-    # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #     (-1.0, 0, -1.5),
     #     (1.25, 0, -1.75),
@@ -1799,7 +1817,7 @@ def long_task_3(robot):
     # ###################put_tomato_on_plate##########
     # # exit_goto = False
     # # exit_goto_finish = False
-    # # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # # Random exploration waypoints (9 points covering most of the map)
     # # available_positions = [
     # #     (-2.0, 0, 2.0),
     # #     (-1.0, 0, 0),
@@ -1823,7 +1841,7 @@ def long_task_3(robot):
     # # GoToObject(robot,'Tomato')
     # exit_goto = False
     # exit_goto_finish = False
-    # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #     (-1, 0.00, 0.0),
     #     (0.25, 0.00, -1.5),
@@ -1854,7 +1872,7 @@ def long_task_3(robot):
     # PickupObject(robot,'Tomato')
     # # exit_goto = False
     # # exit_goto_finish = False
-    # # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # # Random exploration waypoints (9 points covering most of the map)
     # # available_positions = [
     # #     (-2.0, 0, 2.0),
     # #     (-1.0, 0, 0),
@@ -1881,7 +1899,7 @@ def long_task_3(robot):
     # # explore_count=explore_count+explore_point_count
     # exit_goto = False
     # exit_goto_finish = False
-    # #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # # Random exploration waypoints (9 points covering most of the map)
     # available_positions = [
     #     (-1.0, 0, -1.5),
     #     (1.25, 0, -1.75),
@@ -1927,7 +1945,7 @@ def long_task_4(robot):
     #############slice tomato#####################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (1.25, 0, -1.75),
         (-1.0, 0, 0),
@@ -1959,7 +1977,7 @@ def long_task_4(robot):
 
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (0.25, 0.00, -1.5),
@@ -1996,7 +2014,7 @@ def long_task_4(robot):
     ################# throw the knife in the trash########################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
             (-1.0, 0, 0),
             (1.5, 0, -1.5),
@@ -2030,7 +2048,7 @@ def long_task_4(robot):
     #################place potato on the plate#########################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (0.25, 0.00, -1.5),
@@ -2063,7 +2081,7 @@ def long_task_4(robot):
     
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (1.5, 0.00, -1.5),
@@ -2111,7 +2129,7 @@ def long_task_6(robot):
     ########################place potato in fridge####################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (0.25, 0.00, -1.5),
@@ -2152,7 +2170,7 @@ def long_task_6(robot):
     ########################place tomato in fridge####################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
         (-1, 0.00, 0.0),
         (0.25, 0.00, -1.5),
@@ -2194,7 +2212,7 @@ def long_task_6(robot):
     ########################place Bread in fridge####################
     exit_goto = False
     exit_goto_finish = False
-    #定义随机探索的点位（根据地图：选择9个点，尽量覆盖地图的大部分区域）
+    # Random exploration waypoints (9 points covering most of the map)
     available_positions = [
             (-2.0, 0, 2.0),
             (-1.0, 0, 0),

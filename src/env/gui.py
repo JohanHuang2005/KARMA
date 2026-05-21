@@ -9,7 +9,6 @@ import tkinter as tk
 from tkinter import messagebox
 
 from src.paths import HISTORY_DIR, LOGS_DIR, MEMORY_DIR, PROMPTS_DIR
-from src.env import executor
 
 HISTORY_FILE = HISTORY_DIR / "task_history.json"
 SIMILARITY_FLAG = LOGS_DIR / "similarity_flag.json"
@@ -126,6 +125,8 @@ def launch_gui() -> None:
 
         task_listbox.insert(tk.END, task_with_time)
         messagebox.showinfo("Success", "Start the task!")
+        from src.env import executor
+
         executor.run_scripts()
         executor.parse_and_execute_task(ROBOTS[0])
 
@@ -137,6 +138,8 @@ def launch_gui() -> None:
         messagebox.showinfo("Success", "Task history has been cleared!")
 
     def exit_application():
+        from src.env import executor
+
         executor.task_queue.put(None)
         executor.task_executor_thread.join()
         messagebox.showinfo("Info", "All tasks have been executed.")
