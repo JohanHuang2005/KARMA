@@ -14,7 +14,9 @@ from ai2thor.controller import Controller
 
 sys.path.insert(0, os.path.dirname(__file__))
 from dashscope_client import analyze_image_with_task
-from karma_paths import KARMA_ROOT, MEMORY_DIR, LOGS_DIR, SCRIPTS_DIR
+from karma_paths import KARMA_ROOT, MEMORY_DIR, LOGS_DIR, SCRIPTS_DIR, ensure_runtime_env
+
+ensure_runtime_env()
 from scipy.spatial import distance
 from typing import Tuple
 from collections import deque

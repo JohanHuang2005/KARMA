@@ -7,6 +7,7 @@ cd "$ROOT"
 
 export KARMA_ROOT="$ROOT"
 export PYTHONPATH="${ROOT}/scripts:${PYTHONPATH:-}"
+export VK_ICD_FILENAMES="${VK_ICD_FILENAMES:-/etc/vulkan/icd.d/nvidia_icd.json}"
 
 VENV="${ROOT}/.venv"
 if [[ ! -d "$VENV" ]]; then

@@ -68,6 +68,9 @@ def test_ai2thor() -> None:
         record("ai2thor", True, "skipped (KARMA_SKIP_DOWNLOADS=1)")
         return
     try:
+        from karma_paths import ensure_runtime_env
+
+        ensure_runtime_env()
         from ai2thor.controller import Controller
 
         kwargs = dict(scene="FloorPlan1", width=300, height=300, quality="Low")

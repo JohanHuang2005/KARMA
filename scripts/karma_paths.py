@@ -16,6 +16,13 @@ SCRIPTS_DIR = KARMA_ROOT / "scripts"
 RESOURCES_DIR = KARMA_ROOT / "resources"
 
 
+def ensure_runtime_env() -> None:
+    """Env vars required for AI2-THOR CloudRendering on headless NVIDIA servers."""
+    os.environ.setdefault(
+        "VK_ICD_FILENAMES", "/etc/vulkan/icd.d/nvidia_icd.json"
+    )
+
+
 def p(*parts: str) -> str:
     """Join under KARMA_ROOT and return a string path."""
     return str(KARMA_ROOT.joinpath(*parts))

@@ -140,6 +140,9 @@ else:
 PY
 
   python -c "
+import os
+from karma_paths import ensure_runtime_env
+ensure_runtime_env()
 from ai2thor.controller import Controller
 from ai2thor.platform import CloudRendering
 c = Controller(scene='FloorPlan1', width=300, height=300, quality='Low', platform=CloudRendering)
