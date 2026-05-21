@@ -8,12 +8,12 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import messagebox
 
-from src.paths import HISTORY_DIR, LOGS_DIR, MEMORY_DIR, PROMPTS_DIR
+from src.paths import resolve
 
-HISTORY_FILE = HISTORY_DIR / "task_history.json"
-SIMILARITY_FLAG = LOGS_DIR / "similarity_flag.json"
-TASK_DESC = LOGS_DIR / "task_description.json"
-STM_FILE = MEMORY_DIR / "memory3.json"
+HISTORY_FILE = resolve("history_tasks/task_history.json")
+SIMILARITY_FLAG = resolve("logs/similarity_flag.json")
+TASK_DESC = resolve("logs/task_description.json")
+STM_FILE = resolve("memory/memory3.json")
 
 ROBOTS = [
     {
@@ -81,7 +81,7 @@ def format_memory_data(memory_data: list) -> str:
 
 
 def launch_gui() -> None:
-    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    resolve("history_tasks").mkdir(parents=True, exist_ok=True)
 
     def load_task_history():
         try:
@@ -111,7 +111,7 @@ def launch_gui() -> None:
             f"Please help me decompose the following tasks: {task}. "
             "Please output only the generated code."
         )
-        (PROMPTS_DIR / "instruction.txt").write_text(content, encoding="utf-8")
+        resolve("prompts/instruction.txt").write_text(content, encoding="utf-8")
 
         task_history = load_task_history()
         similarity_report, _ = check_task_similarity(task, task_history, OBJECTS_LIST)

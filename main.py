@@ -16,12 +16,15 @@ import tyro
 from loguru import logger
 
 from config import CONFIG, Config
+from src.paths import ensure_repo_cwd, load_dotenv
 from src.utils import setup_logger
 from src.pipeline import pipeline
 
 
 @logger.catch(reraise=True)
 def main(config: Config) -> None:
+    ensure_repo_cwd()
+    load_dotenv()
     setup_logger(config.env.name or config.env.job_type)
     if config.task.use_gui:
         from src.env.gui import launch_gui

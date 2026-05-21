@@ -1,10 +1,10 @@
 import json
 
 from src.llm.client import chat_completion
-from src.paths import LOGS_DIR, PROMPTS_DIR, RESOURCES_DIR, TASK_FUNCTIONS_PATH
+from src.paths import resolve
 
-similarity_flag_path = str(LOGS_DIR / "similarity_flag.json")
-messages_path = str(LOGS_DIR / "messages.json")
+similarity_flag_path = resolve("logs/similarity_flag.json")
+messages_path = resolve("logs/messages.json")
 
 
 def load_file(file_path):
@@ -15,7 +15,7 @@ def load_file(file_path):
 MARKER = "# --- LLM-generated task functions below ---"
 
 
-def insert_code_into_file(new_code: str, target_file_path: str) -> None:
+def insert_code_into_file(new_code: str, target_file_path) -> None:
     with open(target_file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
@@ -46,14 +46,14 @@ def load_similarity_flag():
 def main():
     use_short_term_memory = load_similarity_flag()
 
-    skills = load_file(str(PROMPTS_DIR / "skills.txt"))
-    skills_ex = load_file(str(RESOURCES_DIR / "actions.py"))
-    role = load_file(str(PROMPTS_DIR / "role.txt"))
-    examples = load_file(str(PROMPTS_DIR / "examples.txt"))
-    emphasize = load_file(str(PROMPTS_DIR / "emphasize.txt"))
-    instruction = load_file(str(PROMPTS_DIR / "instruction.txt"))
-    short_term_memory = load_file(str(PROMPTS_DIR / "short_term_memory.txt"))
-    long_term_memory = load_file(str(PROMPTS_DIR / "long_term_memory.txt"))
+    skills = load_file(resolve("prompts/skills.txt"))
+    skills_ex = load_file(resolve("resources/actions.py"))
+    role = load_file(resolve("prompts/role.txt"))
+    examples = load_file(resolve("prompts/examples.txt"))
+    emphasize = load_file(resolve("prompts/emphasize.txt"))
+    instruction = load_file(resolve("prompts/instruction.txt"))
+    short_term_memory = load_file(resolve("prompts/short_term_memory.txt"))
+    long_term_memory = load_file(resolve("prompts/long_term_memory.txt"))
 
     messages = [
         {"role": "user", "content": skills},
@@ -90,10 +90,9 @@ def main():
     api_generated_code = "\n".join(code_lines).strip()
     print(api_generated_code)
 
-    target_file_path = str(TASK_FUNCTIONS_PATH)
-    insert_code_into_file(api_generated_code, target_file_path)
+    insert_code_into_file(api_generated_code, resolve("src/env/task_functions.py"))
 
-    with open(str(LOGS_DIR / "generated_function_name.json"), "w") as file:
+    with open(resolve("logs/generated_function_name.json"), "w") as file:
         json.dump({"function_name": function_name}, file)
 
 

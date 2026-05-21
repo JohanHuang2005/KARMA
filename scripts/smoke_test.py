@@ -5,11 +5,11 @@ from __future__ import annotations
 import os
 import sys
 import traceback
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
-os.environ.setdefault("KARMA_ROOT", str(ROOT))
+# Bootstrap: repo root is parent of scripts/
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 RESULTS: list[tuple[str, bool, str]] = []
 
@@ -21,10 +21,24 @@ def record(name: str, ok: bool, detail: str = "") -> None:
 
 
 def test_paths() -> None:
-    from src.paths import KARMA_ROOT, PROMPTS_DIR
+    from src.paths import resolve
 
-    ok = KARMA_ROOT.is_dir() and (PROMPTS_DIR / "instruction.txt").exists()
-    record("paths", ok, str(KARMA_ROOT))
+    ok = resolve("prompts/instruction.txt").exists()
+    record("paths", ok, "prompts/instruction.txt")
+
+
+def test_portable_cwd() -> None:
+    """Run path resolution without relying on shell cwd."""
+    from src.paths import ensure_repo_cwd, resolve
+
+    original = os.getcwd()
+    try:
+        os.chdir("/tmp")
+        ensure_repo_cwd()
+        ok = resolve("memory/memory3.json").parent.exists()
+        record("portable_cwd", ok, "resolved from /tmp")
+    finally:
+        os.chdir(original)
 
 
 def test_imports() -> None:
@@ -38,16 +52,16 @@ def test_imports() -> None:
 
 def test_memory_diff() -> None:
     from src.memory.save import compare_objects_location
-    from src.paths import MEMORY_DIR
+    from src.paths import resolve
 
-    f1 = MEMORY_DIR / "objects_locations1.json"
-    f2 = MEMORY_DIR / "objects_locations2.json"
-    out = MEMORY_DIR / "memory3.json"
+    f1 = resolve("memory/objects_locations1.json")
+    f2 = resolve("memory/objects_locations2.json")
+    out = resolve("memory/memory3.json")
     if not f1.exists() or not f2.exists():
         record("memory_diff", False, "missing objects_locations json")
         return
     compare_objects_location(str(f1), str(f2), str(out))
-    record("memory_diff", out.exists(), str(out))
+    record("memory_diff", out.exists(), "memory/memory3.json")
 
 
 def test_sentence_transformers() -> None:
@@ -94,8 +108,10 @@ def test_ai2thor() -> None:
 
 def test_dashscope_key() -> None:
     try:
+        from src.paths import load_dotenv
         from src.llm.client import get_api_key
 
+        load_dotenv()
         key = get_api_key()
         record("dashscope_api_key", bool(key and key.startswith("sk-")), "Bailian/DashScope")
     except Exception as e:
@@ -118,24 +134,38 @@ def test_dashscope_chat() -> None:
         record("dashscope_chat", False, str(e)[:120])
 
 
+def test_wandb_offline() -> None:
+    try:
+        import wandb
+        from src.paths import ensure_repo_cwd, load_dotenv, resolve
+
+        load_dotenv()
+        ensure_repo_cwd()
+        run = wandb.init(project="KARMA", mode="offline", job_type="smoke")
+        wandb.log({"smoke_test": 1})
+        run.finish()
+        ok = any(resolve("wandb").glob("offline-run-*"))
+        record("wandb_offline", ok, "offline run dir created")
+    except Exception as e:
+        record("wandb_offline", False, str(e)[:200])
+
+
 def main() -> int:
-    env_path = ROOT / ".env"
-    if env_path.exists():
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip())
+    from src.paths import load_dotenv
+
+    load_dotenv()
 
     print("=== KARMA smoke test ===\n")
     for fn in (
         test_paths,
+        test_portable_cwd,
         test_imports,
         test_memory_diff,
         test_sentence_transformers,
         test_ai2thor,
         test_dashscope_key,
         test_dashscope_chat,
+        test_wandb_offline,
     ):
         try:
             fn()

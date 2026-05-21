@@ -41,8 +41,7 @@ User / benchmark task
 cd KARMA
 bash scripts/setup_env.sh
 source .venv/bin/activate
-export KARMA_ROOT=$PWD
-cp .env.example .env   # set DASHSCOPE_API_KEY
+cp .env.example .env   # set DASHSCOPE_API_KEY (KARMA_ROOT is optional; auto-detected from repo)
 source .env
 ```
 

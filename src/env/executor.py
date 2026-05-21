@@ -12,7 +12,7 @@ import numpy as np
 from ai2thor.controller import Controller
 
 from src.llm.client import analyze_image_with_task
-from src.paths import KARMA_ROOT, LOGS_DIR, MEMORY_DIR, SCRIPTS_DIR, ensure_runtime_env
+from src.paths import ensure_runtime_env, resolve
 from src.memory.mapping import first_map, first_map_for_next_time, second_map
 from src.memory.save import compare_objects_location, read_json_file
 from src.memory.longterm import (
@@ -36,9 +36,9 @@ from glob import glob
 task_queue = queue.Queue()
 
 
-directory_path = str(MEMORY_DIR / "short_term")
-task_description_file_path = str(LOGS_DIR / "task_description.json")
-results_file_path = str(MEMORY_DIR / "analysis_results.json")
+directory_path = str(resolve("memory/short_term"))
+task_description_file_path = str(resolve("logs/task_description.json"))
+results_file_path = str(resolve("memory/analysis_results.json"))
 os.makedirs(directory_path, exist_ok=True)
 def load_task_description():
     try:
@@ -119,7 +119,7 @@ def save_agent_view(image, save_path, filename):
 
 def save_regions_to_json(regions, filename=None):
     if filename is None:
-        filename = str(MEMORY_DIR / "longterm_memory.json")
+        filename = str(resolve("memory/longterm_memory.json"))
     data = {}
     for center, objects in regions.items():
         center_key = f'({center[0]:.2f}, {center[1]:.2f}, {center[2]:.2f})'
@@ -168,7 +168,7 @@ robots = [{'name': 'robot1', 'skills': ['GoToObject', 'OpenObject', 'CloseObject
 floor_no = 1
 
 no_robot = len(robots)
-objects_locations1 = str(MEMORY_DIR / "objects_locations.json")
+objects_locations1 = "memory/objects_locations.json"
 # initialize n agents into the scene (CloudRendering = headless on Linux servers)
 _controller_kwargs = dict(
     agentMode="default",
@@ -221,7 +221,7 @@ regions = get_static_objects_in_regions(c, centers)
 # Save long-term memory
 save_regions_to_json(regions)
 
-filename = str(MEMORY_DIR / "longterm_memory.json")
+filename = str(resolve("memory/longterm_memory.json"))
 sentences = extract_regions_from_json(filename)
 for sentence in sentences:
     print(sentence)
@@ -231,23 +231,18 @@ action_queue = []
 task_over = False
 
 def exec_actions():
-    # delete if current output already exist
-    cur_path = os.path.dirname(__file__) + "/*/"
-    for x in glob(cur_path, recursive = True):
-        shutil.rmtree (x)
-    
-    # create new folders to save the images from the agents
+    sim_dir = resolve("artifacts/sim")
+    if sim_dir.exists():
+        shutil.rmtree(sim_dir)
+    sim_dir.mkdir(parents=True, exist_ok=True)
+
     for i in range(no_robot):
-        folder_name = "agent_" + str(i+1)
-        folder_path = os.path.dirname(__file__) + "/" + folder_name
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-    
-    # create folder to store the top view images
-    folder_name = "top_view"
-    folder_path = os.path.dirname(__file__) + "/" + folder_name
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
+        folder_name = "agent_" + str(i + 1)
+        folder_path = sim_dir / folder_name
+        folder_path.mkdir(parents=True, exist_ok=True)
+
+    folder_path = sim_dir / "top_view"
+    folder_path.mkdir(parents=True, exist_ok=True)
     
     img_counter = 0
     #for short-term memory
@@ -282,9 +277,9 @@ def exec_actions():
                     multi_agent_event = c.step(action="PutObject", objectId=act['objectId'], agentId=act['agent_id'], forceAction=True)
                     second_map(multi_agent_event)
                     compare_objects_location(
-                        str(MEMORY_DIR / "objects_locations1.json"),
-                        str(MEMORY_DIR / "objects_locations2.json"),
-                        str(MEMORY_DIR / "memory3.json"),
+                        str(resolve("memory/objects_locations1.json")),
+                        str(resolve("memory/objects_locations2.json")),
+                        str(resolve("memory/memory3.json")),
                     )
                     first_map(multi_agent_event)
                     # Adjust camera view for short-term memory snapshot
@@ -321,9 +316,9 @@ def exec_actions():
                         print("Action failed:", multi_agent_event1['errorMessage'])
                     second_map(multi_agent_event1)
                     compare_objects_location(
-                        str(MEMORY_DIR / "objects_locations1.json"),
-                        str(MEMORY_DIR / "objects_locations2.json"),
-                        str(MEMORY_DIR / "memory3.json"),
+                        str(resolve("memory/objects_locations1.json")),
+                        str(resolve("memory/objects_locations2.json")),
+                        str(resolve("memory/memory3.json")),
                     )
                 elif act['action'] == 'Done':
                     multi_agent_event = c.step(action="Done")
@@ -333,12 +328,12 @@ def exec_actions():
               
             for i,e in enumerate(multi_agent_event.events):
                 cv2.imshow('agent%s' % i, e.cv2img)
-                f_name = os.path.dirname(__file__) + "/agent_" + str(i+1) + "/img_" + str(img_counter).zfill(5) + ".png"
+                f_name = str(sim_dir / f"agent_{i + 1}" / f"img_{img_counter:05d}.png")
                 cv2.imwrite(f_name, e.cv2img)
             top_view_rgb = cv2.cvtColor(c.last_event.events[0].third_party_camera_frames[-1], cv2.COLOR_BGR2RGB)
             cv2.imshow('Top View', top_view_rgb)
-            f_name = os.path.dirname(__file__) + "/top_view/img_" + str(img_counter).zfill(5) + ".png"
-            cv2.imwrite(f_name, e.cv2img)
+            f_name = str(sim_dir / "top_view" / f"img_{img_counter:05d}.png")
+            cv2.imwrite(f_name, top_view_rgb)
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 break
             
@@ -657,9 +652,9 @@ def ExploreObject(robots, dest_obj, dest_obj2):
     return exit_goto
 def GoToObject_next_time(robots, dest_obj, json_file=None, json_file2=None):
     if json_file is None:
-        json_file = str(MEMORY_DIR / "objects_locations.json")
+        json_file = str(resolve("memory/objects_locations.json"))
     if json_file2 is None:
-        json_file2 = str(MEMORY_DIR / "objects_locations2.json")
+        json_file2 = str(resolve("memory/objects_locations2.json"))
     print ("Going to ", dest_obj)
     # check if robots is a list
 
@@ -766,7 +761,7 @@ def GoToObject_next_time(robots, dest_obj, json_file=None, json_file2=None):
     return reach_flag
 def GoToObject_with_memory(robots, dest_obj, json_file=None):
     if json_file is None:
-        json_file = str(MEMORY_DIR / "memory3.json")
+        json_file = str(resolve("memory/memory3.json"))
     print ("Going to ", dest_obj)
     # check if robots is a list
 
@@ -1034,7 +1029,7 @@ def add_task_to_queue(task_function, robot):
 def parse_and_execute_task(robot):
     try:
         # Load the generated function name from the .json file
-        with open(str(LOGS_DIR / "generated_function_name.json"), 'r') as file:
+        with open(str(resolve("logs/generated_function_name.json")), 'r') as file:
             data = json.load(file)
             function_name = data["function_name"]
         

@@ -41,7 +41,7 @@ def get_static_objects_in_regions(controller, centers, grid_size=0.25):
 
     return regions
 
-def extract_regions_from_json(filename='regions.json'):
+def extract_regions_from_json(filename='memory/longterm_memory.json'):
     with open(filename, 'r') as f:
         data = json.load(f)
 

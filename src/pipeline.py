@@ -8,7 +8,7 @@ from loguru import logger
 
 from config import Config
 from src.utils import log_metrics, save_run_metrics, show_config, timer, wandb_log
-from src.paths import LOGS_DIR, PROMPTS_DIR, ensure_runtime_dirs
+from src.paths import ensure_repo_cwd, ensure_runtime_dirs, resolve
 from src.memory.retrieval import main as run_memory_retrieval
 from src.llm.planner import main as run_planner
 
@@ -40,8 +40,8 @@ def _write_instruction(task: str) -> None:
         f"Please help me decompose the following tasks: {task}. "
         "Please output only the generated code."
     )
-    (PROMPTS_DIR / "instruction.txt").write_text(content, encoding="utf-8")
-    with open(LOGS_DIR / "task_description.json", "w", encoding="utf-8") as f:
+    (resolve("prompts/instruction.txt")).write_text(content, encoding="utf-8")
+    with open(resolve("logs/task_description.json"), "w", encoding="utf-8") as f:
         json.dump({"task_description": task}, f, ensure_ascii=False, indent=4)
 
 
@@ -49,6 +49,7 @@ def _write_instruction(task: str) -> None:
 @show_config
 @timer
 def pipeline(config: Config) -> dict:
+    ensure_repo_cwd()
     ensure_runtime_dirs()
     job = config.env.job_type
 

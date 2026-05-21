@@ -18,25 +18,25 @@ from src.env.executor import (
 
 def pick_up_mug(robot):
     # SubTask: Pick up a mug. (Skills Required: Explore, PickupObject)
-    # Since the location of the mug is not provided in memory, we must explore.
-    # Based on typical kitchen layouts and the provided center points, mugs are often found on CounterTop or in Cabinet/Drawer.
-    # We prioritize checking CounterTop first as it's a common place for mugs.
+    # Since the location of the mug is not explicitly given in memory, we must explore.
+    # Mugs are typically found on CounterTop or in Cabinet/Drawer.
+    # Based on provided centers, CounterTop is at (-1.0, 0.00, -1.5) and (-0.25, 0.00, -1.5).
+    # We will prioritize exploring these high-probability locations first.
 
-    # 0: Explore potential locations for the Mug
-    # Prioritizing CounterTop (-1.0, 0.00, -1.5) and nearby areas like StoveBurner or Drawer if not found.
+    # 0: SubTask: Pick up a mug
+    # 1: Explore for Mug starting with likely locations (CounterTop).
+    # Prioritize centers with CounterTop first: (-1.0, 0.00, -1.5) then (-0.25, 0.00, -1.5)
     available_positions = [
-        (-1.0, 0.00, -1.5),   # Center point with CounterTop
-        (-0.25, 0.00, -1.5),  # Center point with CounterTop
-        (-1.0, 0.00, 0.0),    # Center point with CounterTop
-        (-1.0, 0.00, -1.75),  # Nearby to CounterTop
-        (-1.0, 0.00, -1.25),  # Nearby to CounterTop
-        (-1.0, 0.00, -1.0),   # Nearby to CounterTop
-        (-1.0, 0.00, -2.0),   # Farther away
-        (-1.0, 0.00, -2.5)    # Very far
+        (-1.0, 0.00, -1.5),      # High likelihood (CounterTop present)
+        (-0.25, 0.00, -1.5),     # High likelihood (CounterTop present)
+        (-1.0, 0.00, 0.0),       # Medium likelihood (Drawer/Cabinet might contain mug)
+        (-2.0, 0.00, 2.0),       # Low likelihood (Fridge/GarbageCan)
+        (1.25, 0.00, -1.75),     # Low likelihood (ShelvingUnit)
+        (1.5, 0.00, -0.25),      # Very low (LightSwitch only)
+        (1.5, 0.00, 1.0),        # Empty
+        (0.5, 0.00, 1.5)         # Empty
     ]
-    
-    # 1: Find the Mug
     Explore(robot, 'Mug', available_positions)
     
-    # 2: Pick up the Mug
+    # 2: Pick up the Mug.
     PickupObject(robot, 'Mug')

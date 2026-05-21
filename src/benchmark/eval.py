@@ -23,7 +23,7 @@ from src.memory.longterm import (
 )
 from src.memory.mapping import first_map, first_map_for_next_time, second_map
 from src.memory.save import compare_objects_location, read_json_file
-from src.paths import MEMORY_DIR, ensure_runtime_env
+from src.paths import ensure_runtime_env, resolve
 from src.utils import configure_opencv_headless
 
 ensure_runtime_env()
@@ -34,13 +34,15 @@ def save_agent_view(image, save_path, filename):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     cv2.imwrite(os.path.join(save_path, filename), image)
-def save_regions_to_json(regions, filename='longterm_memory.json'):
+def save_regions_to_json(regions, filename='memory/longterm_memory.json'):
     data = {}
     for center, objects in regions.items():
         center_key = f'({center[0]:.2f}, {center[1]:.2f}, {center[2]:.2f})'
         data[center_key] = [{'objectType': obj['objectType'], 'position': obj['position']} for obj in objects]
 
-    with open(filename, 'w') as f:
+    path = resolve(filename)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, 'w') as f:
         json.dump(data, f, indent=4)
 
 def generate_random_position_from_list(available_positions):
@@ -85,7 +87,7 @@ floor_no = 1
 # c = Controller( height=1000, width=1000)
 # c.reset("FloorPlan" + str(floor_no)) 
 no_robot = len(robots)
-objects_locations1 = str(MEMORY_DIR / "objects_locations.json")
+objects_locations1 = str(resolve("memory/objects_locations.json"))
 # initialize n agents into the scene (CloudRendering for headless Linux)
 _controller_kwargs = dict(
     agentMode="default",
@@ -137,8 +139,8 @@ regions = get_static_objects_in_regions(c, centers)
 # Save long-term memory
 save_regions_to_json(regions)
 
-filename = 'longterm_memory.json'
-sentences = extract_regions_from_json(filename)
+filename = 'memory/longterm_memory.json'
+sentences = extract_regions_from_json(str(resolve(filename)))
 for sentence in sentences:
     print(sentence)
 
@@ -148,20 +150,17 @@ task_over = False
 
 def exec_actions():
     # delete if current output already exist
-    cur_path = os.path.dirname(__file__) + "/*/"
-    for x in glob(cur_path, recursive = True):
-        shutil.rmtree (x)
-    
-    # create new folders to save the images from the agents
+    bench_dir = resolve("artifacts/benchmark")
+    if bench_dir.exists():
+        shutil.rmtree(bench_dir)
+    bench_dir.mkdir(parents=True, exist_ok=True)
+
     for i in range(no_robot):
-        folder_name = "agent_" + str(i+1)
-        folder_path = os.path.dirname(__file__) + "/" + folder_name
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-    
-    # create folder to store the top view images
-    folder_name = "top_view"
-    folder_path = os.path.dirname(__file__) + "/" + folder_name
+        folder_name = "agent_" + str(i + 1)
+        folder_path = bench_dir / folder_name
+        folder_path.mkdir(parents=True, exist_ok=True)
+
+    folder_path = bench_dir / "top_view"
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     
@@ -198,16 +197,16 @@ def exec_actions():
                     multi_agent_event = c.step(action="PutObject", objectId=act['objectId'], agentId=act['agent_id'], forceAction=True)
                     second_map(multi_agent_event)
                     compare_objects_location(
-                        str(MEMORY_DIR / "objects_locations1.json"),
-                        str(MEMORY_DIR / "objects_locations2.json"),
-                        str(MEMORY_DIR / "memory3.json"),
+                        str(resolve("memory/objects_locations1.json")),
+                        str(resolve("memory/objects_locations2.json")),
+                        str(resolve("memory/memory3.json")),
                     )
                     first_map(multi_agent_event)
                     # Adjust camera view for short-term memory snapshot
                     c.step(action='LookDown',degrees=20)
                     frame = multi_agent_event.frame
                     frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                    save_path = './short_term'
+                    save_path = str(resolve("memory/short_term"))
                     filename = f"test_memory_{image_counter}.png"
                     save_agent_view(frame_bgr, save_path, filename)
                     image_counter += 1
@@ -238,9 +237,9 @@ def exec_actions():
                         print("Action failed:", multi_agent_event1['errorMessage'])
                     second_map(multi_agent_event1)
                     compare_objects_location(
-                        str(MEMORY_DIR / "objects_locations1.json"),
-                        str(MEMORY_DIR / "objects_locations2.json"),
-                        str(MEMORY_DIR / "memory3.json"),
+                        str(resolve("memory/objects_locations1.json")),
+                        str(resolve("memory/objects_locations2.json")),
+                        str(resolve("memory/memory3.json")),
                     )
                 elif act['action'] == 'Done':
                     multi_agent_event = c.step(action="Done")
@@ -253,12 +252,12 @@ def exec_actions():
               
             for i,e in enumerate(multi_agent_event.events):
                 cv2.imshow('agent%s' % i, e.cv2img)
-                f_name = os.path.dirname(__file__) + "/agent_" + str(i+1) + "/img_" + str(img_counter).zfill(5) + ".png"
+                f_name = str(bench_dir / f"agent_{i + 1}" / f"img_{img_counter:05d}.png")
                 cv2.imwrite(f_name, e.cv2img)
             top_view_rgb = cv2.cvtColor(c.last_event.events[0].third_party_camera_frames[-1], cv2.COLOR_BGR2RGB)
             cv2.imshow('Top View', top_view_rgb)
-            f_name = os.path.dirname(__file__) + "/top_view/img_" + str(img_counter).zfill(5) + ".png"
-            cv2.imwrite(f_name, e.cv2img)
+            f_name = str(bench_dir / "top_view" / f"img_{img_counter:05d}.png")
+            cv2.imwrite(f_name, top_view_rgb)
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 break
             
@@ -483,7 +482,11 @@ def explore(robots, dest_obj, dest_obj2):
         
     print ("Reached: ", dest_obj)
     return exit_goto
-def GoToObject_next_time(robots, dest_obj, json_file='objects_locations.json', json_file2='objects_locations2.json'):
+def GoToObject_next_time(robots, dest_obj, json_file=None, json_file2=None):
+    if json_file is None:
+        json_file = str(resolve("memory/objects_locations.json"))
+    if json_file2 is None:
+        json_file2 = str(resolve("memory/objects_locations2.json"))
     print ("Going to ", dest_obj)
     # check if robots is a list
 
@@ -602,7 +605,9 @@ def GoToObject_next_time(robots, dest_obj, json_file='objects_locations.json', j
     elif not reach_flag:
         print ("Failed to Reach: ", dest_obj)
     return reach_flag
-def GoToObject_with_memory(robots, dest_obj, json_file='memory3.json'):
+def GoToObject_with_memory(robots, dest_obj, json_file=None):
+    if json_file is None:
+        json_file = str(resolve("memory/memory3.json"))
     print ("Going to ", dest_obj)
     # check if robots is a list
 
@@ -2270,20 +2275,20 @@ BENCHMARK_TASKS = {
 
 
 def run_benchmark(task_name: str = "long_task_3", output_path: str = "artifacts/output.json") -> dict:
+    from src.paths import ensure_repo_cwd
+
     task_fn = BENCHMARK_TASKS.get(task_name)
     if task_fn is None:
         raise ValueError(f"Unknown benchmark task: {task_name}")
 
-    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    cwd = os.getcwd()
-    try:
-        os.chdir(os.path.dirname(output_path) or ".")
-        task_fn(robots[0])
-    finally:
-        os.chdir(cwd)
+    ensure_repo_cwd()
+    task_fn(robots[0])
 
-    out_file = os.path.join(os.path.dirname(output_path) or ".", "output.json")
-    if os.path.exists(out_file):
-        with open(out_file, encoding="utf-8") as f:
+    tmp = resolve("output.json")
+    dst = resolve(output_path)
+    if tmp.exists():
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        tmp.replace(dst)
+        with open(dst, encoding="utf-8") as f:
             return json.load(f)
     return {}

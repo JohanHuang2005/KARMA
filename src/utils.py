@@ -3,17 +3,17 @@ from __future__ import annotations
 
 import functools
 import json
+import os
 import random
 import time
 from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
-from dotenv import get_key
 from loguru import logger
 
 from config import Config
-from src.paths import ARTIFACTS_DIR, LOGS_DIR, ensure_runtime_dirs
+from src.paths import ARTIFACTS_DIR, ensure_runtime_dirs, load_dotenv, resolve
 
 
 def configure_opencv_headless() -> None:
@@ -30,7 +30,7 @@ def configure_opencv_headless() -> None:
 
 def setup_logger(run_name: str = "karma") -> None:
     ensure_runtime_dirs()
-    log_dir = ARTIFACTS_DIR / "logs"
+    log_dir = resolve("artifacts/logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     logger.add(
         log_dir / f"{run_name}_{{time:YYYYMMDD_HHmmss}}.log",
@@ -77,14 +77,13 @@ def wandb_log(func: Callable) -> Callable:
         if config.env.wandb_mode == "disabled":
             return func(config, *args, **kwargs)
 
+        load_dotenv()
         import wandb
 
-        env_file = Path(".env")
-        if env_file.exists():
-            api_key = get_key(".env", "WANDB_API_KEY")
-            base_url = get_key(".env", "WANDB_BASE_URL")
-            if api_key:
-                wandb.login(key=api_key, host=base_url or None)
+        api_key = os.environ.get("WANDB_API_KEY")
+        base_url = os.environ.get("WANDB_BASE_URL")
+        if api_key:
+            wandb.login(key=api_key, host=base_url or None)
         wandb.init(
             project=config.env.project,
             name=config.env.name or config.env.job_type,
@@ -111,7 +110,7 @@ def _config_to_dict(config: Config) -> dict[str, Any]:
 
 def save_run_metrics(metrics: dict[str, Any], path: Path | None = None) -> Path:
     ensure_runtime_dirs()
-    out = path or (LOGS_DIR / "run_metrics.json")
+    out = path or resolve("logs/run_metrics.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", encoding="utf-8") as f:
         json.dump(metrics, f, ensure_ascii=False, indent=2)

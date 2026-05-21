@@ -4,8 +4,8 @@ __pycache__/
 *.pyc
 scripts/agent_*/
 scripts/top_view/
-src/benchmark/agent_*/
-src/benchmark/top_view/
+artifacts/benchmark/
+artifacts/sim/
 memory/short_term/*.png
 artifacts/logs/
 wandb/

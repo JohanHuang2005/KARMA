@@ -3,7 +3,7 @@ import json
 import numpy as np
 from sentence_transformers import SentenceTransformer, util
 
-from src.paths import EXPERIENCE_DIR, MEMORY_DIR, PROMPTS_DIR, ensure_hf_mirror
+from src.paths import ensure_hf_mirror, resolve
 
 
 def load_file(file_path):
@@ -14,7 +14,6 @@ def load_file(file_path):
 def extract_task(description):
     colon_index = description.find(":")
     if colon_index != -1:
-        # Text between ':' and the first '.'
         task = description[colon_index + 1 :].split(".")[0].strip()
         return task
     return None
@@ -37,7 +36,6 @@ def update_memory_with_state(memory_file, analysis_file):
     with open(analysis_file, "r", encoding="utf-8") as file:
         analysis_data = json.load(file)
 
-    # Use the latest vision analysis entry
     last_analysis_key = list(analysis_data.keys())[-1]
     state_data = {obj.lower(): state for obj, state in analysis_data[last_analysis_key].items()}
 
@@ -51,16 +49,16 @@ def update_memory_with_state(memory_file, analysis_file):
 
 
 def main():
-    analysis_file_path = str(MEMORY_DIR / "analysis_results.json")
-    memory_file_path = str(MEMORY_DIR / "memory3.json")
-    example_file_path = str(EXPERIENCE_DIR / "experience.json")
-    examples_output_path = str(PROMPTS_DIR / "examples.txt")
-    instruction_file_path = str(PROMPTS_DIR / "instruction.txt")
-    short_term_memory_file_path = str(PROMPTS_DIR / "short_term_memory.txt")
+    analysis_file_path = resolve("memory/analysis_results.json")
+    memory_file_path = resolve("memory/memory3.json")
+    example_file_path = resolve("experience/experience.json")
+    examples_output_path = resolve("prompts/examples.txt")
+    instruction_file_path = resolve("prompts/instruction.txt")
+    short_term_memory_file_path = resolve("prompts/short_term_memory.txt")
 
-    update_memory_with_state(memory_file_path, analysis_file_path)
-    items = load_json(memory_file_path)
-    description = load_file(instruction_file_path)
+    update_memory_with_state(str(memory_file_path), str(analysis_file_path))
+    items = load_json(str(memory_file_path))
+    description = load_file(str(instruction_file_path))
     extracted_task = extract_task(description)
 
     if extracted_task:
@@ -94,10 +92,10 @@ def main():
         f"{top_result_item['objectType']} is at position "
         f"({position['x']:.2f}, {position['y']:.2f}, {position['z']:.2f})."
     )
-    save_to_file(short_term_memory_file_path, formatted_content)
-    print(f"Top matching item has been saved to {short_term_memory_file_path}")
+    save_to_file(str(short_term_memory_file_path), formatted_content)
+    print(f"Top matching item has been saved to prompts/short_term_memory.txt")
 
-    example_data = load_json(example_file_path)
+    example_data = load_json(str(example_file_path))
     tasks = [example["task"] for example in example_data]
     task_embeddings = model.encode(tasks, convert_to_tensor=True)
     cosine_scores = util.pytorch_cos_sim(query_embedding, task_embeddings)[0].cpu().numpy()
@@ -110,7 +108,7 @@ def main():
             file.write("\n".join(decomposition))
             file.write("\n\n")
 
-    print(f"Top 3 task decompositions have been saved to {examples_output_path}")
+    print("Top 3 task decompositions have been saved to prompts/examples.txt")
 
 
 if __name__ == "__main__":

@@ -45,7 +45,6 @@ bash scripts/download_assets_mirror.sh ai2thor
 
 ```bash
 source .venv/bin/activate
-export KARMA_ROOT=$PWD
 python -c "from ai2thor.controller import Controller; from ai2thor.platform import CloudRendering; c=Controller(scene='FloorPlan1', width=300, height=300, platform=CloudRendering); c.step('Pass'); c.stop(); print('ai2thor OK')"
 ```
 
@@ -101,7 +100,6 @@ Cache: `~/.cache/huggingface/` or ModelScope `~/.cache/modelscope/hub/`
 cd KARMA
 bash scripts/setup_env.sh
 source .venv/bin/activate
-export KARMA_ROOT=$PWD
 source .env
 
 python scripts/smoke_test.py
