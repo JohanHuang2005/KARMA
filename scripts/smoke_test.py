@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Non-GUI smoke tests for KARMA (no full task loop)."""
+"""Non-GUI smoke tests for KARMA."""
 from __future__ import annotations
 
 import os
 import sys
 import traceback
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(__file__))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+os.environ.setdefault("KARMA_ROOT", str(ROOT))
 
 RESULTS: list[tuple[str, bool, str]] = []
 
@@ -18,7 +21,7 @@ def record(name: str, ok: bool, detail: str = "") -> None:
 
 
 def test_paths() -> None:
-    from karma_paths import KARMA_ROOT, MEMORY_DIR, PROMPTS_DIR
+    from src.paths import KARMA_ROOT, PROMPTS_DIR
 
     ok = KARMA_ROOT.is_dir() and (PROMPTS_DIR / "instruction.txt").exists()
     record("paths", ok, str(KARMA_ROOT))
@@ -26,17 +29,16 @@ def test_paths() -> None:
 
 def test_imports() -> None:
     try:
-        import memory_save  # noqa: F401
-        import mapping  # noqa: F401
-        import longterm_save  # noqa: F401
-        record("utility_imports", True)
+        from src.memory import mapping, save, longterm  # noqa: F401
+        from src.llm import client, planner  # noqa: F401
+        record("package_imports", True)
     except Exception as e:
-        record("utility_imports", False, str(e))
+        record("package_imports", False, str(e))
 
 
 def test_memory_diff() -> None:
-    from memory_save import compare_objects_location
-    from karma_paths import MEMORY_DIR
+    from src.memory.save import compare_objects_location
+    from src.paths import MEMORY_DIR
 
     f1 = MEMORY_DIR / "objects_locations1.json"
     f2 = MEMORY_DIR / "objects_locations2.json"
@@ -68,7 +70,7 @@ def test_ai2thor() -> None:
         record("ai2thor", True, "skipped (KARMA_SKIP_DOWNLOADS=1)")
         return
     try:
-        from karma_paths import ensure_runtime_env
+        from src.paths import ensure_runtime_env
 
         ensure_runtime_env()
         from ai2thor.controller import Controller
@@ -92,7 +94,7 @@ def test_ai2thor() -> None:
 
 def test_dashscope_key() -> None:
     try:
-        from dashscope_client import get_api_key
+        from src.llm.client import get_api_key
 
         key = get_api_key()
         record("dashscope_api_key", bool(key and key.startswith("sk-")), "Bailian/DashScope")
@@ -105,7 +107,7 @@ def test_dashscope_chat() -> None:
         record("dashscope_chat", True, "skipped (KARMA_SKIP_DOWNLOADS=1)")
         return
     try:
-        from dashscope_client import chat_completion
+        from src.llm.client import chat_completion
 
         text = chat_completion(
             [{"role": "user", "content": "Reply with exactly: OK"}],
@@ -117,16 +119,13 @@ def test_dashscope_chat() -> None:
 
 
 def main() -> int:
-    os.environ.setdefault("KARMA_ROOT", str(__import__("pathlib").Path(__file__).resolve().parent.parent))
-
-    if os.path.exists(os.path.join(os.path.dirname(__file__), "..", ".env")):
-        env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
-        with open(env_path) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, v = line.split("=", 1)
-                    os.environ.setdefault(k.strip(), v.strip())
+    env_path = ROOT / ".env"
+    if env_path.exists():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip())
 
     print("=== KARMA smoke test ===\n")
     for fn in (

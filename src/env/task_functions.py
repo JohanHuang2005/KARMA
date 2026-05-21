@@ -1,4 +1,4 @@
-"""Generated task functions — LLM inserts new defs after imports."""
+"""Generated task functions — LLM appends new defs below the marker."""
 from src.env.executor import (
     BreakObject,
     CleanObject,

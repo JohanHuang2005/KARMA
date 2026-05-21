@@ -6,7 +6,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 export KARMA_ROOT="$ROOT"
-export PYTHONPATH="${ROOT}/scripts:${PYTHONPATH:-}"
+export PYTHONPATH="${ROOT}:${PYTHONPATH:-}"
+export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
 export VK_ICD_FILENAMES="${VK_ICD_FILENAMES:-/etc/vulkan/icd.d/nvidia_icd.json}"
 
 VENV="${ROOT}/.venv"
@@ -19,7 +20,7 @@ source "$VENV/bin/activate"
 pip install -U pip wheel
 pip install -r requirements.txt
 
-mkdir -p memory/short_term logs history_tasks
+mkdir -p memory/short_term logs history_tasks artifacts/logs
 
 if [[ -f "$ROOT/.env" ]]; then
   set -a
@@ -33,3 +34,4 @@ echo "  KARMA_ROOT=$KARMA_ROOT"
 echo "  Python: $(which python)"
 echo "  DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:+set}${DASHSCOPE_API_KEY:-NOT SET}"
 echo "  Model: ${DASHSCOPE_CHAT_MODEL:-qwen3.5-omni-flash}"
+echo "  HF_ENDPOINT: ${HF_ENDPOINT}"

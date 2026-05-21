@@ -5,4 +5,7 @@ __pycache__/
 scripts/agent_*/
 scripts/top_view/
 memory/short_term/*.png
+artifacts/logs/
+wandb/
 .DS_Store
+.cursorrules
